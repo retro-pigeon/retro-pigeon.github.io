@@ -1,0 +1,28 @@
+#clock {
+    position: absolute;
+    left: 15vw;
+    top: 33vh;
+    font-family:Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+    font-size: 15vw;
+}
+
+#miliseconds {
+    font-size: 5vw;
+    vertical-align: super;
+}
+
+#date {
+    position: absolute;
+    left: 5vw;
+    top: 5vh;
+    font-family: Georgia, 'Times New Roman', Times, serif;
+    font-size: 2vw;
+}
+
+#till-break {
+    position: absolute;
+    left: 75vw;
+    top: 5vh;
+    font-family: Georgia, 'Times New Roman', Times, serif;
+    font-size: 2vw;
+}
