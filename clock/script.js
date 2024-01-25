@@ -30,10 +30,11 @@ setInterval((f) => {
 
 setInterval((f) => {
   let d = new Date();
+  if(d.getMinutes() > 50)
   jsConfetti.addConfetti({
     emojis: ["🌈", "⚡️", "💥", "✨", "💫", "🌸"],
   });
-}, 500);
+}, 1000);
 
 function convertDateToString(
   year = new Date().getFullYear(),
@@ -82,7 +83,7 @@ function convertDateToFrenchString(
   const formattedDate = date.toLocaleDateString("fr-FR", options);
   const daySuffix = getFrenchDaySuffix(day);
 
-  return `Le ${day}${daySuffix} de ${formattedDate}`;
+  return formattedDate;
 }
 
 function convertDateToRomanianString(
