@@ -198,7 +198,7 @@
                             emojis: ['💩'],
                         });
                         logAnswer('wrong', a, b, option);
-                        score = Math.floor(score / 2);
+                        score = score - 3;
                         streak = 0;
                         setTimeout(() => {
                             document.body.classList.remove('shake');
