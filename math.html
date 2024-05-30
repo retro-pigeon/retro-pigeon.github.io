@@ -146,7 +146,7 @@
             reroll = false;
             const a = Math.floor(Math.random() * 100) + 1; // a < 20, but at least 1
             const b = Math.floor(Math.random() * 100); // b < 11, can be 0
-            if (subtraction && b >= a) {
+            if (!addition && b >= a) {
                 return generateQuestion(reroll); // Ensure b < a
             }
 
