@@ -222,7 +222,7 @@
         function logAnswer(status, a, b, answer) {
             let logs = localStorage.getItem("maths");
             if (!logs) logs = "";
-            logs += `${status === 'correct' ? 'c' : 'w'}${a} ${reroll} ${b} = ${answer}\n`;
+            logs += `${status === 'correct' ? 'c' : 'w'}${a} ${addition} ${b} = ${answer} / v00\n`;
             localStorage.setItem("maths", logs);
         }
 
