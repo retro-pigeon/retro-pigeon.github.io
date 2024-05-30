@@ -144,8 +144,8 @@
         function generateQuestion(reroll = true) {
             if (reroll) addition = Math.random() < .5;
             reroll = false;
-            const a = Math.floor(Math.random() * 100) + 1; // a < 20, but at least 1
-            const b = Math.floor(Math.random() * 100); // b < 11, can be 0
+            const a = Math.floor(Math.random() * 30) + 1; // a < 20, but at least 1
+            const b = Math.floor(Math.random() * 30); // b < 11, can be 0
             if (!addition && b >= a) {
                 return generateQuestion(reroll); // Ensure b < a
             }
@@ -178,7 +178,7 @@
 
         function displayQuestion() {
             const { a, b } = generateQuestion();
-            const correctAnswer = addition? a+b:a - b;
+            const correctAnswer = addition ? a + b :a - b;
             const options = generateOptions(correctAnswer);
 
             document.getElementById('question').innerText = `${a} ${addition ? '+' : '-'} ${b} = ?`;
