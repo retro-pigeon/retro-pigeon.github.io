@@ -139,13 +139,21 @@
         let username = "";
         let score = 0;
         let streak = 0;
+        let addition = false;
 
-        function generateQuestion() {
-            const a = Math.floor(Math.random() * 20) + 1; // a < 20, but at least 1
-            const b = Math.floor(Math.random() * 11); // b < 11, can be 0
-            if (b >= a) {
-                return generateQuestion(); // Ensure b < a
+        function generateQuestion(reroll = true) {
+            if (reroll) addition = Math.random() < .5;
+            reroll = false;
+            const a = Math.floor(Math.random() * 100) + 1; // a < 20, but at least 1
+            const b = Math.floor(Math.random() * 100); // b < 11, can be 0
+            if (subtraction && b >= a) {
+                return generateQuestion(reroll); // Ensure b < a
             }
+
+            if (addition && a + b < 100) {
+                return generateQuestion(reroll);
+            }
+            
             return { a, b };
         }
 
@@ -170,10 +178,10 @@
 
         function displayQuestion() {
             const { a, b } = generateQuestion();
-            const correctAnswer = a - b;
+            const correctAnswer = addition? a+b:a - b;
             const options = generateOptions(correctAnswer);
 
-            document.getElementById('question').innerText = `${a} - ${b} = ?`;
+            document.getElementById('question').innerText = `${a} ${addition ? '+' : '-'} ${b} = ?`;
             const optionsDiv = document.getElementById('options');
             optionsDiv.innerHTML = '';
 
@@ -214,7 +222,7 @@
         function logAnswer(status, a, b, answer) {
             let logs = localStorage.getItem("maths");
             if (!logs) logs = "";
-            logs += `${status === 'correct' ? 'c' : 'w'}${a} - ${b} = ${answer}\n`;
+            logs += `${status === 'correct' ? 'c' : 'w'}${a} ${reroll} ${b} = ${answer}\n`;
             localStorage.setItem("maths", logs);
         }
 
