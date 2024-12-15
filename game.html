@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multiplication Game</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f0f0f0;
+    }
+
+    .game-container {
+      text-align: center;
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    button {
+      padding: 15px 25px;
+      font-size: 18px;
+      cursor: pointer;
+      border: none;
+      background-color: #4CAF50;
+      color: white;
+      border-radius: 5px;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    .options {
+      display: flex;
+      align-items: center;
+      margin: 20px 0;
+    }
+
+    .option-button {
+      padding: 15px 25px;
+      font-size: 18px;
+      margin: 5px;
+      cursor: pointer;
+      border: none;
+      background-color: #f0ad4e;
+      color: white;
+      border-radius: 5px;
+    }
+
+    .option-button:hover {
+      background-color: #ec971f;
+    }
+
+    p {
+      font-size: 24px;
+    }
+
+    h1 {
+      font-size: 36px;
+    }
+
+    #round {
+      font-size: 28px;
+    }
+
+    #timer {
+      font-size: 24px;
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <div class="game-container">
+    <h1>Multiplication Game</h1>
+    <p id="round">Round: 1</p>
+    <p id="question"></p>
+    <div class="options">
+      <button class="option-button" id="option1"></button>
+      <button class="option-button" id="option2"></button>
+      <button class="option-button" id="option3"></button>
+      <button class="option-button" id="option4"></button>
+    </div>
+    <p id="result"></p>
+    <p id="timer">Time: 10</p>
+    <audio id="correct-sound" src="https://www.myinstants.com/media/sounds/correct-answer-sound-effect-19.mp3" preload="auto"></audio>
+    <audio id="incorrect-sound" src="https://www.myinstants.com/media/sounds/vine-boom.mp3" preload="auto"></audio>
+    <audio id="brain-sound" src="https://www.myinstants.com/media/sounds/1-big-brain-meme.mp3" preload="auto"></audio>
+  </div>
+
+  <script>
+    let round = 1;
+    let correctAnswers = 0;
+    const totalRounds = 10;
+    let timer = 10;
+    let countdown;
+
+    const questionElement = document.getElementById('question');
+    const roundElement = document.getElementById('round');
+    const resultElement = document.getElementById('result');
+    const timerElement = document.getElementById('timer');
+    const optionButtons = document.querySelectorAll('.option-button');
+    const correctSound = document.getElementById('correct-sound');
+    const incorrectSound = document.getElementById('incorrect-sound');
+	const brainSound = document.getElementById('brain-sound');
+
+    function getRandomNumber() {
+      return Math.floor(Math.random() * 13); // Random number between 0 and 12
+    }
+
+    function generateQuestion() {
+      const num1 = getRandomNumber();
+      const num2 = getRandomNumber();
+      const correctAnswer = num1 * num2;
+      questionElement.textContent = `What is ${num1} x ${num2}?`;
+
+      const options = [correctAnswer];
+
+      // Generate 3 wrong answers: ±5 of the correct answer
+      while (options.length < 4) {
+        const randomOption = correctAnswer + (Math.floor(Math.random() * 11) - 5); // ±5 range
+        if (!options.includes(randomOption) && randomOption >= 0) {
+          options.push(randomOption);
+        }
+      }
+
+      // Shuffle the options
+      options.sort(() => Math.random() - 0.5);
+
+      // Set the options to the buttons
+      optionButtons.forEach((button, index) => {
+        button.textContent = options[index];
+        button.onclick = () => checkAnswer(options[index]);
+      });
+
+      return { correctAnswer };
+    }
+
+    function checkAnswer(selectedAnswer) {
+      const userAnswer = selectedAnswer;
+      if (userAnswer === currentQuestion.correctAnswer) {
+        correctAnswers++;
+        resultElement.textContent = 'Correct!';
+	correctSound.currentTime = 0;
+        correctSound.play();
+      } else {
+        resultElement.textContent = `Wrong! The correct answer was ${currentQuestion.correctAnswer}. Try again.`;	incorrectSound.currentTime = 0;
+        incorrectSound.play();
+      }
+
+      round++;
+      if (round <= totalRounds) {
+        roundElement.textContent = `Round: ${round}`;
+        currentQuestion = generateQuestion();
+        startTimer(); // Restart timer for next question
+      } else {
+        resultElement.textContent = `Game Over! You got ${correctAnswers} out of ${totalRounds} correct.`;
+        optionButtons.forEach(button => button.disabled = true);
+        clearInterval(countdown); // Stop the timer
+	if (correctAnswers == totalRounds) brainSound.play();
+      }
+    }
+
+    function startTimer() {
+      timer = 5; // Reset timer to 10 seconds
+      timerElement.textContent = `Time: ${timer}`;
+      clearInterval(countdown); // Clear any existing timer
+      countdown = setInterval(function() {
+        timer--;
+        timerElement.textContent = `Time: ${timer}`;
+        if (timer <= 0) {
+          clearInterval(countdown);
+          resultElement.textContent = `Time's up! The correct answer was ${currentQuestion.correctAnswer}.`;
+          round++;
+          if (round <= totalRounds) {
+            roundElement.textContent = `Round: ${round}`;
+            currentQuestion = generateQuestion();
+            startTimer(); // Restart timer for next question
+          } else {
+            resultElement.textContent = `Game Over! You got ${correctAnswers} out of ${totalRounds} correct.`;
+            optionButtons.forEach(button => button.disabled = true);
+          }
+        }
+      }, 1000);
+    }
+
+    let currentQuestion = generateQuestion();
+    startTimer(); // Start the timer when the game starts
+  </script>
+</body>
+</html>
