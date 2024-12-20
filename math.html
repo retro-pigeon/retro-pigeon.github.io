@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Subtraction Game</title>
+    <title>Multiplication Game</title>
     <script src="https://cdn.jsdelivr.net/npm/js-confetti@latest/dist/js-confetti.browser.js"></script>
     <style>
         body {
@@ -139,21 +139,10 @@
         let username = "";
         let score = 0;
         let streak = 0;
-        let addition = false;
 
-        function generateQuestion(reroll = true) {
-            if (reroll) addition = Math.random() < .5;
-            reroll = false;
-            const a = Math.floor(Math.random() * 30) + 1; // a < 20, but at least 1
-            const b = Math.floor(Math.random() * 30); // b < 11, can be 0
-            if (!addition && b >= a) {
-                return generateQuestion(reroll); // Ensure b < a
-            }
-
-            if (addition && a + b > 100) {
-                return generateQuestion(reroll);
-            }
-            
+        function generateQuestion() {
+            const a = Math.floor(Math.random() * 11); // Random number between 0 and 10
+            const b = Math.floor(Math.random() * 11); // Random number between 0 and 10
             return { a, b };
         }
 
@@ -178,10 +167,10 @@
 
         function displayQuestion() {
             const { a, b } = generateQuestion();
-            const correctAnswer = addition ? a + b :a - b;
+            const correctAnswer = a * b; // Multiplication
             const options = generateOptions(correctAnswer);
 
-            document.getElementById('question').innerText = `${a} ${addition ? '+' : '-'} ${b} = ?`;
+            document.getElementById('question').innerText = `${a} × ${b} = ?`;
             const optionsDiv = document.getElementById('options');
             optionsDiv.innerHTML = '';
 
@@ -222,7 +211,7 @@
         function logAnswer(status, a, b, answer) {
             let logs = localStorage.getItem("maths");
             if (!logs) logs = "";
-            logs += `${status === 'correct' ? 'c' : 'w'}${a} ${addition} ${b} = ${answer} / v00\n`;
+            logs += `${status === 'correct' ? 'c' : 'w'}${a} × ${b} = ${answer} / v00\n`;
             localStorage.setItem("maths", logs);
         }
 
