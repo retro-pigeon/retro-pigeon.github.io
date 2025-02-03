@@ -1,0 +1,9 @@
+A: - Bonjour, monsieur, je veux les acheter. Combien coute le fromage?
+R: - Bonjour, le morceau de fromage coute 4 euros et quatre-vingt-neuf cents.
+A: - Tres bien, merci. Je veux payer avec ma carte.
+R: - Ok, mais attention, l'eau est expiree.
+A: - Meh, il est tres bone!
+R: - Vous voulez un sac pour les objects?
+A: - Oui, merci, a bientot!
+R: - A bientot, ne buvez pas l'eau expire!
+[ Andrei beau l'eau ]
