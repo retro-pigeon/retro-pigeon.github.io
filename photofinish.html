@@ -196,6 +196,7 @@
 
     // Play the sound with the specified delay (in milliseconds)
     function playBeepWithDelay() {
+      setTimeout(() => {
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         const oscillator = audioContext.createOscillator();
         oscillator.type = "sine"; // Simple sine wave sound
@@ -203,6 +204,7 @@
         oscillator.connect(audioContext.destination);
         oscillator.start();
         oscillator.stop(audioContext.currentTime + 1); // Longer sound duration (1 second)
+      }, soundDelay); // Delay the sound by the specified number of milliseconds
     }
 
     // Get the list of available cameras (video input devices)
@@ -242,6 +244,12 @@
       mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
       video.srcObject = mediaStream;
     }
+
+    // Event listener for changing the camera
+    cameraSelect.addEventListener("change", async () => {
+      selectedCameraId = cameraSelect.value;  // Update the selected camera ID
+      await startVideo();  // Restart video with the new camera
+    });
 
     // Compare the current frame with the previous frame to detect motion (in the 10px area around the centerline)
     function detectMotion(currentFrame) {
@@ -297,7 +305,7 @@
       }
 
       // Start the countdown with the user-specified length
-      let countdown = +countdownLengthSelect.value;
+      let countdown = countdownLength;
       const countdownInterval = setInterval(() => {
         countdownDiv.textContent = countdown;
         countdown--;
@@ -322,7 +330,7 @@
         if (motionDetected) {
           clearInterval(detectionInterval);
           endTime = Date.now();
-          const timeTaken = (endTime - startTime) / 1000 - (+soundDelayInput.value) / 1000;
+          const timeTaken = (endTime - startTime) / 1000;
           timeDiv.textContent = `Time: ${timeTaken.toFixed(2)}s`;
           photoFinish.style.display = 'block';
           captureFinishPhoto();
