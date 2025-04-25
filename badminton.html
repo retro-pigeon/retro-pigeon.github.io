@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Badminton Speed Tracker</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        label, input {
+            margin: 5px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px;
+        }
+
+        #result {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        canvas {
+            margin-top: 30px;
+            border: 1px solid #ccc;
+        }
+
+        #charts {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Badminton Speed Tracker</h1>
+
+    <label for="distanceInput">Distance (meters):</label>
+    <input type="number" id="distanceInput" value="10" step="0.1" min="1">
+
+    <label for="thresholdInput">Threshold (0 - 1):</label>
+    <input type="number" id="thresholdInput" value="0.05" step="0.01" min="0" max="1">
+
+    <label>
+        <input type="checkbox" id="logScaleToggle"> Log Scale Volume Chart
+    </label>
+
+    <div>
+        <button id="startButton">Start Recording</button>
+        <button id="stopButton" disabled>Stop Recording</button>
+    </div>
+
+    <div id="result"></div>
+
+    <div id="charts">
+        <canvas id="waveform" width="800" height="300"></canvas>
+        <canvas id="volumeChart" width="800" height="200"></canvas>
+    </div>
+
+    <script>
+        const startButton = document.getElementById('startButton');
+        const stopButton = document.getElementById('stopButton');
+        const resultDiv = document.getElementById('result');
+        const waveformCanvas = document.getElementById('waveform');
+        const volumeCanvas = document.getElementById('volumeChart');
+        const waveformCtx = waveformCanvas.getContext('2d');
+        const volumeCtx = volumeCanvas.getContext('2d');
+        const logScaleToggle = document.getElementById('logScaleToggle');
+
+        let audioContext;
+        let mediaRecorder;
+        let audioChunks = [];
+        let audioBuffer;
+        let audioStream = null;
+
+        async function getMicrophoneStream() {
+            if (!audioStream) {
+                audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            }
+            return audioStream;
+        }
+
+        startButton.addEventListener('click', async () => {
+            const distance = parseFloat(document.getElementById('distanceInput').value);
+            const threshold = parseFloat(document.getElementById('thresholdInput').value);
+
+            resultDiv.innerText = 'Recording... Please hit the shuttlecock.';
+            waveformCtx.clearRect(0, 0, waveformCanvas.width, waveformCanvas.height);
+            volumeCtx.clearRect(0, 0, volumeCanvas.width, volumeCanvas.height);
+            audioChunks = [];
+
+            try {
+                const stream = await getMicrophoneStream();
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
+
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    const arrayBuffer = await audioBlob.arrayBuffer();
+                    audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                    detectImpacts(audioBuffer, distance, threshold);
+                };
+
+                mediaRecorder.start();
+                stopButton.disabled = false;
+                startButton.disabled = true;
+
+                setTimeout(() => {
+                    if (mediaRecorder && mediaRecorder.state === 'recording') {
+                        mediaRecorder.stop();
+                        stopButton.disabled = true;
+                        startButton.disabled = false;
+                        resultDiv.innerText = 'Processing...';
+                    }
+                }, 5000);
+
+            } catch (err) {
+                resultDiv.innerText = `Error: ${err.message}`;
+            }
+        });
+
+        stopButton.addEventListener('click', () => {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                stopButton.disabled = true;
+                startButton.disabled = false;
+                resultDiv.innerText = 'Processing...';
+            }
+        });
+
+        function detectImpacts(buffer, distance, threshold) {
+            const data = buffer.getChannelData(0);
+            const sampleRate = audioContext.sampleRate;
+            const minTimeDiff = 0.1;
+            let impactTimes = [];
+
+            let peakVolume = 0;
+            let sum = 0;
+
+            for (let i = 1; i < data.length; i++) {
+                const val = Math.abs(data[i]);
+                sum += val;
+                if (val > peakVolume) peakVolume = val;
+
+                if (val > threshold && Math.abs(data[i - 1]) <= threshold) {
+                    const time = i / sampleRate;
+                    if (
+                        impactTimes.length === 0 ||
+                        (time - impactTimes[impactTimes.length - 1]) > minTimeDiff
+                    ) {
+                        impactTimes.push(time);
+                        if (impactTimes.length === 2) break;
+                    }
+                }
+            }
+
+            const avgVolume = sum / data.length;
+
+            let output = `<p>Peak Volume: ${peakVolume.toFixed(4)}</p>`;
+            output += `<p>Average Volume: ${avgVolume.toFixed(4)}</p>`;
+
+            if (impactTimes.length === 2) {
+                const timeDiff = impactTimes[1] - impactTimes[0];
+                const speed = distance / timeDiff;
+
+                output += `<p>Time Between Hits: ${timeDiff.toFixed(3)} s</p>`;
+                output += `<p>Distance: ${distance} m</p>`;
+                output += `<p><strong>Estimated Speed: ${speed.toFixed(2)} m/s</strong></p>`;
+
+                // Frequency of both hits
+                const freq1 = estimatePitch(data, sampleRate, impactTimes[0]);
+                const freq2 = estimatePitch(data, sampleRate, impactTimes[1]);
+                output += `<p>Hit 1 Pitch: ${freq1 ? freq1.toFixed(1) + " Hz" : "N/A"}</p>`;
+                output += `<p>Hit 2 Pitch: ${freq2 ? freq2.toFixed(1) + " Hz" : "N/A"}</p>`;
+            } else {
+                output += `<p>Could not detect two clear hits. Try again.</p>`;
+            }
+
+            resultDiv.innerHTML = output;
+            drawWaveform(data, sampleRate, impactTimes, threshold);
+            drawVolumeDistribution(data, logScaleToggle.checked);
+        }
+
+        function drawWaveform(data, sampleRate, impactTimes, threshold) {
+            const width = waveformCanvas.width;
+            const height = waveformCanvas.height;
+            waveformCtx.clearRect(0, 0, width, height);
+
+            const step = Math.floor(data.length / width);
+            const middleY = height / 2;
+
+            waveformCtx.beginPath();
+            waveformCtx.moveTo(0, middleY);
+
+            for (let x = 0; x < width; x++) {
+                const index = x * step;
+                const amp = data[index];
+                const y = middleY - amp * middleY;
+                waveformCtx.lineTo(x, y);
+            }
+
+            waveformCtx.strokeStyle = 'blue';
+            waveformCtx.lineWidth = 1;
+            waveformCtx.stroke();
+
+            // Threshold line
+            const thresholdY = middleY - threshold * middleY;
+            waveformCtx.beginPath();
+            waveformCtx.moveTo(0, thresholdY);
+            waveformCtx.lineTo(width, thresholdY);
+            waveformCtx.strokeStyle = 'orange';
+            waveformCtx.setLineDash([5, 5]);
+            waveformCtx.stroke();
+            waveformCtx.setLineDash([]);
+            waveformCtx.fillStyle = 'orange';
+            waveformCtx.fillText(`Threshold (${threshold})`, 10, thresholdY - 5);
+
+            // Impact markers
+            impactTimes.forEach((time, i) => {
+                const x = (time * sampleRate / data.length) * width;
+                waveformCtx.beginPath();
+                waveformCtx.moveTo(x, 0);
+                waveformCtx.lineTo(x, height);
+                waveformCtx.strokeStyle = i === 0 ? 'red' : 'green';
+                waveformCtx.lineWidth = 2;
+                waveformCtx.stroke();
+                waveformCtx.fillStyle = waveformCtx.strokeStyle;
+                waveformCtx.fillText(`Hit ${i + 1}`, x + 5, 20 + i * 20);
+            });
+        }
+
+        function drawVolumeDistribution(data, useLogScale) {
+            const width = volumeCanvas.width;
+            const height = volumeCanvas.height;
+            volumeCtx.clearRect(0, 0, width, height);
+
+            const bins = new Array(101).fill(0);
+            for (let i = 0; i < data.length; i++) {
+                const vol = Math.min(1, Math.abs(data[i]));
+                const percent = Math.floor(vol * 100);
+                bins[percent]++;
+            }
+
+            const maxCount = Math.max(...bins);
+            const barWidth = width / bins.length;
+
+            for (let i = 0; i < bins.length; i++) {
+                let barHeight = (bins[i] / maxCount) * height;
+                if (useLogScale && bins[i] > 0) {
+                    barHeight = Math.log(bins[i]) / Math.log(maxCount) * height;
+                }
+                const x = i * barWidth;
+                const y = height - barHeight;
+
+                volumeCtx.fillStyle = 'purple';
+                volumeCtx.fillRect(x, y, barWidth - 1, barHeight);
+            }
+
+            volumeCtx.fillStyle = 'black';
+            volumeCtx.font = '12px sans-serif';
+            volumeCtx.fillText('Volume % Distribution (' + (useLogScale ? 'Log' : 'Linear') + ')', 10, 15);
+            volumeCtx.fillText('0%', 0, height - 5);
+            volumeCtx.fillText('50%', width / 2 - 10, height - 5);
+            volumeCtx.fillText('100%', width - 30, height - 5);
+        }
+
+        logScaleToggle.addEventListener('change', () => {
+            if (audioBuffer) {
+                drawVolumeDistribution(audioBuffer.getChannelData(0), logScaleToggle.checked);
+            }
+        });
+
+        function estimatePitch(data, sampleRate, time) {
+            const windowSize = 2048;
+            const startIndex = Math.floor(time * sampleRate);
+            const segment = data.slice(startIndex, startIndex + windowSize);
+            if (segment.length < windowSize) return null;
+
+            let bestOffset = -1;
+            let bestCorrelation = 0;
+
+            for (let offset = 32; offset < 512; offset++) {
+                let correlation = 0;
+                for (let i = 0; i < windowSize - offset; i++) {
+                    correlation += segment[i] * segment[i + offset];
+                }
+
+                if (correlation > bestCorrelation) {
+                    bestCorrelation = correlation;
+                    bestOffset = offset;
+                }
+            }
+
+            if (bestOffset > 0) {
+                return sampleRate / bestOffset;
+            }
+            return null;
+        }
+    </script>
+</body>
+</html>
