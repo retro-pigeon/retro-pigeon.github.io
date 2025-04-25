@@ -93,6 +93,12 @@
       font-size: 18px;
       padding: 5px;
     }
+
+    #cameraSelect {
+      margin-bottom: 20px;
+      padding: 10px;
+      font-size: 18px;
+    }
   </style>
 </head>
 <body>
@@ -110,6 +116,10 @@
   
   <!-- Custom distance input (visible only if 'Custom' is selected) -->
   <input type="number" id="customDistance" placeholder="Enter custom distance (m)" min="1" />
+
+  <!-- Dropdown for selecting camera -->
+  <label for="cameraSelect">Select Camera:</label>
+  <select id="cameraSelect"></select>
 
   <button id="startBtn">Start</button>
   <div id="countdown"></div>
@@ -130,6 +140,7 @@
     const photoFinish = document.getElementById("photoFinish");
     const distanceSelect = document.getElementById("distance");
     const customDistanceInput = document.getElementById("customDistance");
+    const cameraSelect = document.getElementById("cameraSelect");
 
     let startTime = null;
     let endTime = null;
@@ -137,6 +148,7 @@
     let mediaStream = null;
     let selectedDistance = 60; // Default to 60m
     let customDistance = 0;
+    let selectedCameraId = null;
 
     let previousFrame = null;
     const motionThreshold = 1000;  // Number of pixels that need to change to detect motion
@@ -153,10 +165,42 @@
       oscillator.stop(audioContext.currentTime + 1); // Longer sound duration (1 second)
     }
 
-    // Start video stream from webcam
+    // Start video stream from the selected camera
     async function startVideo() {
-      mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      // Stop any previous media streams
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+      }
+
+      // Start the video stream from the selected camera
+      const constraints = {
+        video: {
+          deviceId: selectedCameraId ? { exact: selectedCameraId } : undefined
+        }
+      };
+
+      mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
       video.srcObject = mediaStream;
+    }
+
+    // Get the list of available cameras (video input devices)
+    async function getCameras() {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(device => device.kind === 'videoinput');
+
+      // Populate the camera select dropdown with available cameras
+      videoDevices.forEach(device => {
+        const option = document.createElement('option');
+        option.value = device.deviceId;
+        option.textContent = device.label || `Camera ${cameraSelect.length + 1}`;
+        cameraSelect.appendChild(option);
+      });
+
+      // Set the default camera (the first available)
+      if (videoDevices.length > 0) {
+        selectedCameraId = videoDevices[0].deviceId;
+        cameraSelect.value = selectedCameraId;
+      }
     }
 
     // Compare the current frame with the previous frame to detect motion (in the 10px area around the centerline)
@@ -242,7 +286,7 @@
           timeDiv.textContent = `Time: ${timeTaken.toFixed(2)} seconds`;
 
           // Calculate the speed in km/h (distance in meters, time in seconds)
-          const speedKmH = (selectedDistance / (timeTaken / 3600)).toFixed(2);
+          const speedKmH = (selectedDistance / (timeTaken / 3600) / 1000).toFixed(2);
           speedDiv.textContent = `Speed: ${speedKmH} km/h`;
 
           // Display the photo finish image when motion is detected
@@ -274,11 +318,22 @@
       }
     });
 
+    // Camera selection change
+    cameraSelect.addEventListener("change", () => {
+      selectedCameraId = cameraSelect.value;
+      startVideo();
+    });
+
     // Start the app when the button is clicked
     startBtn.addEventListener("click", () => {
       startBtn.disabled = true;
       startSprint();
       startVideo();
+    });
+
+    // Get the available cameras when the page loads
+    window.addEventListener('load', () => {
+      getCameras();
     });
   </script>
 </body>
