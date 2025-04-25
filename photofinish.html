@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sprint Time Tracker</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f0f0f0;
+      color: #333;
+    }
+
+    h1 {
+      font-size: 36px;
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    #startBtn {
+      padding: 15px 30px;
+      font-size: 20px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    #startBtn:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+
+    #startBtn:hover {
+      background-color: #45a049;
+    }
+
+    #video {
+      position: relative;
+      border: 2px solid #000;
+      margin-top: 20px;
+      background-color: #000;
+      box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    #guideline {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      width: 2px;
+      height: 100%;
+      background-color: red;
+      z-index: 10;
+    }
+
+    #countdown {
+      font-size: 32px;
+      margin-top: 20px;
+      font-weight: bold;
+    }
+
+    #time {
+      font-size: 36px;
+      font-weight: bold;
+      margin-top: 20px;
+      color: #4CAF50;
+    }
+
+    #photoFinish {
+      margin-top: 20px;
+      border: 2px solid #333;
+      max-width: 640px;
+      max-height: 480px;
+    }
+
+    #distance {
+      margin-bottom: 20px;
+      padding: 10px;
+      font-size: 18px;
+    }
+
+    #customDistance {
+      display: none;
+      margin-top: 10px;
+      font-size: 18px;
+      padding: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Sprint Time Tracker</h1>
+
+  <!-- Dropdown for selecting distance -->
+  <label for="distance">Select Distance:</label>
+  <select id="distance">
+    <option value="60">60m</option>
+    <option value="100">100m</option>
+    <option value="200">200m</option>
+    <option value="400">400m</option>
+    <option value="custom">Custom</option>
+  </select>
+  
+  <!-- Custom distance input (visible only if 'Custom' is selected) -->
+  <input type="number" id="customDistance" placeholder="Enter custom distance (m)" min="1" />
+
+  <button id="startBtn">Start</button>
+  <div id="countdown"></div>
+  <div id="time"></div>
+  <div id="videoContainer" style="position: relative;">
+    <video id="video" width="640" height="480" autoplay></video>
+    <div id="guideline"></div> <!-- The guideline to help the user line up -->
+  </div>
+  <img id="photoFinish" style="display: none;" /> <!-- The photo finish image will be displayed here -->
+  <div id="speed"></div> <!-- The speed display -->
+
+  <script>
+    const startBtn = document.getElementById("startBtn");
+    const countdownDiv = document.getElementById("countdown");
+    const timeDiv = document.getElementById("time");
+    const speedDiv = document.getElementById("speed");
+    const video = document.getElementById("video");
+    const photoFinish = document.getElementById("photoFinish");
+    const distanceSelect = document.getElementById("distance");
+    const customDistanceInput = document.getElementById("customDistance");
+
+    let startTime = null;
+    let endTime = null;
+    let motionDetected = false;
+    let mediaStream = null;
+    let selectedDistance = 60; // Default to 60m
+    let customDistance = 0;
+
+    let previousFrame = null;
+    const motionThreshold = 1000;  // Number of pixels that need to change to detect motion
+    const motionAreaWidth = 10;    // Detect motion in a 10px wide area around the center
+
+    // Play a longer beep sound using the Web Audio API (simulating a starting pistol)
+    function playBeep() {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      oscillator.type = "sine"; // Simple sine wave sound
+      oscillator.frequency.setValueAtTime(1000, audioContext.currentTime); // Frequency in Hz
+      oscillator.connect(audioContext.destination);
+      oscillator.start();
+      oscillator.stop(audioContext.currentTime + 1); // Longer sound duration (1 second)
+    }
+
+    // Start video stream from webcam
+    async function startVideo() {
+      mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      video.srcObject = mediaStream;
+    }
+
+    // Compare the current frame with the previous frame to detect motion (in the 10px area around the centerline)
+    function detectMotion(currentFrame) {
+      const ctx = currentFrame.getContext("2d");
+      const width = currentFrame.width;
+      const height = currentFrame.height;
+      const imageData = ctx.getImageData(0, 0, width, height);
+      const data = imageData.data;
+
+      const midX = Math.floor(width / 2); // Center line of the frame
+      let changedPixels = 0;
+
+      // Check the 10px area to the left and right of the centerline
+      for (let y = 0; y < height; y++) {
+        // Check 10px to the left of the centerline
+        for (let x = midX - motionAreaWidth; x < midX; x++) {
+          const i = (y * width + x) * 4;
+          const rDiff = Math.abs(data[i] - previousFrame.data[i]);
+          const gDiff = Math.abs(data[i + 1] - previousFrame.data[i + 1]);
+          const bDiff = Math.abs(data[i + 2] - previousFrame.data[i + 2]);
+
+          if (rDiff + gDiff + bDiff > 50) { // Threshold for pixel change
+            changedPixels++;
+          }
+        }
+
+        // Check 10px to the right of the centerline
+        for (let x = midX; x < midX + motionAreaWidth; x++) {
+          const i = (y * width + x) * 4;
+          const rDiff = Math.abs(data[i] - previousFrame.data[i]);
+          const gDiff = Math.abs(data[i + 1] - previousFrame.data[i + 1]);
+          const bDiff = Math.abs(data[i + 2] - previousFrame.data[i + 2]);
+
+          if (rDiff + gDiff + bDiff > 50) { // Threshold for pixel change
+            changedPixels++;
+          }
+        }
+      }
+
+      // If more than the threshold number of pixels have changed in the 10px area, motion is detected
+      return changedPixels > motionThreshold;
+    }
+
+    // Countdown timer and start sequence
+    async function startSprint() {
+      countdownDiv.textContent = "Get Ready...";
+
+      // Get the selected distance (either from the dropdown or custom input)
+      if (distanceSelect.value === "custom" && customDistanceInput.value) {
+        selectedDistance = parseFloat(customDistanceInput.value);
+      } else {
+        selectedDistance = parseFloat(distanceSelect.value);
+      }
+
+      // Start the 10-second countdown
+      let countdown = 10;
+      const countdownInterval = setInterval(() => {
+        countdownDiv.textContent = countdown;
+        countdown--;
+        if (countdown < 0) {
+          clearInterval(countdownInterval);
+          countdownDiv.textContent = "";
+          playBeep();
+          startTime = Date.now();
+          startMotionDetection();
+        }
+      }, 1000);
+    }
+
+    // Start motion detection loop
+    function startMotionDetection() {
+      motionDetected = false;
+
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+
+      const detectionInterval = setInterval(() => {
+        if (motionDetected) {
+          clearInterval(detectionInterval);
+          endTime = Date.now();
+          const timeTaken = (endTime - startTime) / 1000;
+          timeDiv.textContent = `Time: ${timeTaken.toFixed(2)} seconds`;
+
+          // Calculate the speed in km/h (distance in meters, time in seconds)
+          const speedKmH = (selectedDistance / (timeTaken / 3600)).toFixed(2);
+          speedDiv.textContent = `Speed: ${speedKmH} km/h`;
+
+          // Display the photo finish image when motion is detected
+          photoFinish.style.display = "block";
+          photoFinish.src = canvas.toDataURL(); // Show the captured frame as an image
+        }
+
+        // Capture a frame from the video stream
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // Detect motion in the frame
+        if (previousFrame) {
+          motionDetected = detectMotion(canvas);
+        }
+
+        // Update the previous frame for the next comparison
+        previousFrame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      }, 100);
+    }
+
+    // Show custom distance input when 'Custom' is selected
+    distanceSelect.addEventListener("change", () => {
+      if (distanceSelect.value === "custom") {
+        customDistanceInput.style.display = "block";
+      } else {
+        customDistanceInput.style.display = "none";
+      }
+    });
+
+    // Start the app when the button is clicked
+    startBtn.addEventListener("click", () => {
+      startBtn.disabled = true;
+      startSprint();
+      startVideo();
+    });
+  </script>
+</body>
+</html>
