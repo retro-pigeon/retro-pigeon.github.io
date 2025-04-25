@@ -23,7 +23,7 @@
       color: #333;
     }
 
-    #startBtn {
+    #startBtn, #restartBtn, #requestCameraPermissionBtn {
       padding: 15px 30px;
       font-size: 20px;
       background-color: #4CAF50;
@@ -32,6 +32,7 @@
       border-radius: 8px;
       cursor: pointer;
       transition: background-color 0.3s ease;
+      margin-top: 20px;
     }
 
     #startBtn:disabled {
@@ -39,7 +40,7 @@
       cursor: not-allowed;
     }
 
-    #startBtn:hover {
+    #startBtn:hover, #restartBtn:hover, #requestCameraPermissionBtn:hover {
       background-color: #45a049;
     }
 
@@ -81,6 +82,12 @@
       max-height: 480px;
     }
 
+    #speed {
+      font-size: 24px;
+      font-weight: bold;
+      margin-top: 20px;
+    }
+
     #distance {
       margin-bottom: 20px;
       padding: 10px;
@@ -95,6 +102,18 @@
     }
 
     #cameraSelect {
+      margin-bottom: 20px;
+      padding: 10px;
+      font-size: 18px;
+    }
+
+    #countdownSelect {
+      margin-bottom: 20px;
+      padding: 10px;
+      font-size: 18px;
+    }
+
+    #soundDelaySelect {
       margin-bottom: 20px;
       padding: 10px;
       font-size: 18px;
@@ -121,7 +140,35 @@
   <label for="cameraSelect">Select Camera:</label>
   <select id="cameraSelect"></select>
 
-  <button id="startBtn">Start</button>
+  <!-- Dropdown for selecting countdown duration -->
+  <label for="countdownSelect">Select Countdown Duration:</label>
+  <select id="countdownSelect">
+    <option value="0">0s</option>
+    <option value="1">1s</option>
+    <option value="3">3s</option>
+    <option value="5">5s</option>
+    <option value="10">10s</option>
+    <option value="15">15s</option>
+    <option value="30">30s</option>
+  </select>
+
+  <!-- Dropdown for selecting sound delay -->
+  <label for="soundDelaySelect">Select Sound Delay:</label>
+  <select id="soundDelaySelect">
+    <option value="0">0ms</option>
+    <option value="100">100ms</option>
+    <option value="200">200ms</option>
+    <option value="500">500ms</option>
+    <option value="1000">1000ms</option>
+  </select>
+
+  <!-- Button to request camera permission -->
+  <button id="requestCameraPermissionBtn">Request Camera Permission</button>
+
+  <!-- Start and Restart buttons -->
+  <button id="startBtn" disabled>Start</button>
+  <button id="restartBtn" style="display: none;">Restart Race</button>
+
   <div id="countdown"></div>
   <div id="time"></div>
   <div id="videoContainer" style="position: relative;">
@@ -133,6 +180,7 @@
 
   <script>
     const startBtn = document.getElementById("startBtn");
+    const restartBtn = document.getElementById("restartBtn");
     const countdownDiv = document.getElementById("countdown");
     const timeDiv = document.getElementById("time");
     const speedDiv = document.getElementById("speed");
@@ -141,6 +189,9 @@
     const distanceSelect = document.getElementById("distance");
     const customDistanceInput = document.getElementById("customDistance");
     const cameraSelect = document.getElementById("cameraSelect");
+    const countdownSelect = document.getElementById("countdownSelect");
+    const soundDelaySelect = document.getElementById("soundDelaySelect");
+    const requestCameraPermissionBtn = document.getElementById("requestCameraPermissionBtn");
 
     let startTime = null;
     let endTime = null;
@@ -149,10 +200,27 @@
     let selectedDistance = 60; // Default to 60m
     let customDistance = 0;
     let selectedCameraId = null;
+    let countdownDuration = 10; // Default countdown is 10s
+    let soundDelay = 0; // Default sound delay is 0ms
 
     let previousFrame = null;
     const motionThreshold = 1000;  // Number of pixels that need to change to detect motion
     const motionAreaWidth = 10;    // Detect motion in a 10px wide area around the center
+
+    // Request camera permission when the button is clicked
+    async function requestCameraPermission() {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(device => device.kind === 'videoinput');
+
+      if (videoDevices.length > 0) {
+        selectedCameraId = videoDevices[0].deviceId;
+        cameraSelect.value = selectedCameraId;
+        await startVideo();
+        startBtn.disabled = false; // Enable the start button after permission is granted
+      } else {
+        alert("No video devices found. Please check your camera.");
+      }
+    }
 
     // Play a longer beep sound using the Web Audio API (simulating a starting pistol)
     function playBeep() {
@@ -167,12 +235,10 @@
 
     // Start video stream from the selected camera
     async function startVideo() {
-      // Stop any previous media streams
       if (mediaStream) {
         mediaStream.getTracks().forEach(track => track.stop());
       }
 
-      // Start the video stream from the selected camera
       const constraints = {
         video: {
           deviceId: selectedCameraId ? { exact: selectedCameraId } : undefined
@@ -181,26 +247,6 @@
 
       mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
       video.srcObject = mediaStream;
-    }
-
-    // Get the list of available cameras (video input devices)
-    async function getCameras() {
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const videoDevices = devices.filter(device => device.kind === 'videoinput');
-
-      // Populate the camera select dropdown with available cameras
-      videoDevices.forEach(device => {
-        const option = document.createElement('option');
-        option.value = device.deviceId;
-        option.textContent = device.label || `Camera ${cameraSelect.length + 1}`;
-        cameraSelect.appendChild(option);
-      });
-
-      // Set the default camera (the first available)
-      if (videoDevices.length > 0) {
-        selectedCameraId = videoDevices[0].deviceId;
-        cameraSelect.value = selectedCameraId;
-      }
     }
 
     // Compare the current frame with the previous frame to detect motion (in the 10px area around the centerline)
@@ -256,15 +302,23 @@
         selectedDistance = parseFloat(distanceSelect.value);
       }
 
-      // Start the 10-second countdown
-      let countdown = 10;
+      // Get the selected countdown duration
+      countdownDuration = parseInt(countdownSelect.value);
+
+      // Get the selected sound delay
+      soundDelay = parseInt(soundDelaySelect.value);
+
+      // Start the countdown
+      let countdown = countdownDuration;
       const countdownInterval = setInterval(() => {
         countdownDiv.textContent = countdown;
         countdown--;
         if (countdown < 0) {
           clearInterval(countdownInterval);
           countdownDiv.textContent = "";
-          playBeep();
+          setTimeout(() => {
+            playBeep();  // Play the beep after the delay
+          }, soundDelay);
           startTime = Date.now();
           startMotionDetection();
         }
@@ -286,7 +340,7 @@
           timeDiv.textContent = `Time: ${timeTaken.toFixed(2)} seconds`;
 
           // Calculate the speed in km/h (distance in meters, time in seconds)
-          const speedKmH = (selectedDistance / (timeTaken / 3600) / 1000).toFixed(2);
+          const speedKmH = (selectedDistance / (timeTaken / 3600)).toFixed(2);
           speedDiv.textContent = `Speed: ${speedKmH} km/h`;
 
           // Display the photo finish image when motion is detected
@@ -327,13 +381,25 @@
     // Start the app when the button is clicked
     startBtn.addEventListener("click", () => {
       startBtn.disabled = true;
+      restartBtn.style.display = "inline-block"; // Show restart button
       startSprint();
       startVideo();
     });
 
-    // Get the available cameras when the page loads
-    window.addEventListener('load', () => {
-      getCameras();
+    // Restart the race
+    restartBtn.addEventListener("click", () => {
+      motionDetected = false;
+      photoFinish.style.display = "none";
+      timeDiv.textContent = "";
+      speedDiv.textContent = "";
+      startBtn.disabled = false;
+      restartBtn.style.display = "none";
+      previousFrame = null;
+    });
+
+    // Request camera permission on button click
+    requestCameraPermissionBtn.addEventListener("click", () => {
+      requestCameraPermission();
     });
   </script>
 </body>
