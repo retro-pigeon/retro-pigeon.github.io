@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Track Timer</title>
+  <style>
+    :root {
+      --primary: #007bff;
+      --bg: #f9f9f9;
+      --text: #333;
+      --card-bg: #fff;
+      --border-radius: 10px;
+      --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+    }
+
+    header {
+      padding: 1rem;
+      text-align: center;
+      background: var(--primary);
+      color: #fff;
+    }
+
+    main {
+      padding: 1.5rem;
+      max-width: 1000px;
+      margin: auto;
+    }
+
+    .timer-container {
+      background-color: #000;
+      color: #0f0;
+      font-family: "Courier New", monospace;
+      font-size: 5rem;
+      text-align: center;
+      padding: 1.5rem;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+      margin: 2rem 0;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+
+    input[type="text"] {
+      padding: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: var(--border-radius);
+      font-size: 1rem;
+    }
+
+    button {
+      padding: 0.5rem 1rem;
+      border: none;
+      background-color: var(--primary);
+      color: #fff;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 1rem;
+      transition: background-color 0.2s ease-in-out;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    .athlete-card {
+      background: var(--card-bg);
+      border-radius: var(--border-radius);
+      padding: 1rem;
+      margin-bottom: 1rem;
+      box-shadow: var(--shadow);
+    }
+
+    .athlete-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .athlete-body {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
+    .athlete-info {
+      line-height: 1.6;
+    }
+
+    .athlete-buttons {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      margin-top: 0.5rem;
+    }
+
+    @media (max-width: 600px) {
+      .athlete-body {
+        flex-direction: column;
+        gap: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Track Timer</h1>
+</header>
+
+<main>
+  <div class="controls">
+    <form id="athlete-form">
+      <input type="text" id="athlete-name" placeholder="Enter athlete name" required />
+      <button type="submit">Add Athlete</button>
+    </form>
+    <button id="start-btn">Start Race</button>
+  </div>
+
+  <div class="timer-container">
+    <span id="timer">00:00:00:00</span>
+  </div>
+
+  <div id="athletes"></div>
+</main>
+
+<script>
+  let startTime = null;
+  let interval = null;
+  const trackLength = 400;
+  const athletes = [];
+
+  function beep() {
+    const ctx = new AudioContext();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = "sine";
+    o.frequency.value = 880;
+    o.connect(g);
+    g.connect(ctx.destination);
+    o.start();
+    o.stop(ctx.currentTime + 0.2);
+  }
+
+  function formatFullTime(ms) {
+    const hours = Math.floor(ms / 3600000);
+    const mins = Math.floor((ms % 3600000) / 60000);
+    const secs = Math.floor((ms % 60000) / 1000);
+    const cs = Math.floor((ms % 1000) / 10);
+    return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}:${String(cs).padStart(2, "0")}`;
+  }
+
+  function formatPace(seconds) {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}/lap`;
+  }
+
+  function updateTimer() {
+    const now = Date.now();
+    const elapsedMs = now - startTime;
+    const elapsed = elapsedMs / 1000;
+    document.getElementById("timer").textContent = formatFullTime(elapsedMs);
+
+    athletes.forEach(a => {
+      const distance = a.laps * trackLength + a.halfLaps * (trackLength / 2);
+      const pace = distance > 0 ? elapsed / (distance / trackLength) : 0;
+      document.getElementById(`distance-${a.id}`).textContent = distance + " m";
+      document.getElementById(`pace-${a.id}`).textContent = distance > 0 ? formatPace(pace) : "-";
+    });
+
+    updateRankings();
+  }
+
+  function updateRankings() {
+    const rankings = [...athletes].sort((a, b) => {
+      const da = a.laps * 2 + a.halfLaps;
+      const db = b.laps * 2 + b.halfLaps;
+      return db - da;
+    });
+    rankings.forEach((a, i) => {
+      document.getElementById(`rank-${a.id}`).textContent = `#${i + 1}`;
+    });
+  }
+
+  function addAthlete(name) {
+    const id = Date.now();
+    const athlete = { id, name, laps: 0, halfLaps: 0 };
+    athletes.push(athlete);
+
+    const card = document.createElement("div");
+    card.className = "athlete-card";
+    card.innerHTML = `
+      <div class="athlete-header">
+        <h3>${name}</h3>
+        <span id="rank-${id}" class="rank">#-</span>
+      </div>
+      <div class="athlete-body">
+        <div class="athlete-info">
+          <strong>Laps:</strong> <span id="laps-${id}">0</span><br>
+          <strong>Distance:</strong> <span id="distance-${id}">0 m</span><br>
+          <strong>Pace:</strong> <span id="pace-${id}">-</span>
+        </div>
+        <div class="athlete-buttons">
+          <button onclick="addLap(${id})">+1 Lap</button>
+          <button onclick="addHalfLap(${id})">+½ Lap</button>
+        </div>
+      </div>
+    `;
+    document.getElementById("athletes").appendChild(card);
+  }
+
+  window.addLap = function(id) {
+    const athlete = athletes.find(a => a.id === id);
+    if (athlete) {
+      athlete.laps++;
+      document.getElementById(`laps-${id}`).textContent = `${athlete.laps} + ${athlete.halfLaps}×½`;
+    }
+  }
+
+  window.addHalfLap = function(id) {
+    const athlete = athletes.find(a => a.id === id);
+    if (athlete) {
+      athlete.halfLaps++;
+      document.getElementById(`laps-${id}`).textContent = `${athlete.laps} + ${athlete.halfLaps}×½`;
+    }
+  }
+
+  document.getElementById("athlete-form").addEventListener("submit", e => {
+    e.preventDefault();
+    const name = document.getElementById("athlete-name").value.trim();
+    if (name) {
+      addAthlete(name);
+      document.getElementById("athlete-name").value = "";
+    }
+  });
+
+  document.getElementById("start-btn").addEventListener("click", () => {
+    if (!startTime) {
+      startTime = Date.now();
+      beep();
+      interval = setInterval(updateTimer, 10);
+    }
+  });
+</script>
+</body>
+</html>
