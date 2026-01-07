@@ -11,7 +11,7 @@
     const sound = new Audio("https://www.myinstants.com/media/sounds/rick-ogg_gwcjskk.mp3");
 
     // Add click listener to the whole document
-    document.addEventListener("onkeydown", () => {
+    document.addEventListener("keydown", () => {
       sound.currentTime = 0; // restart sound if already playing
       sound.play();
     });
