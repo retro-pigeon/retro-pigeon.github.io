@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Homework</title>
+</head>
+<body>
+
+  <script>
+    // Create an Audio object
+    const sound = new Audio("https://www.myinstants.com/media/sounds/rick-ogg_gwcjskk.mp3");
+
+    // Add click listener to the whole document
+    document.addEventListener("click", () => {
+      sound.currentTime = 0; // restart sound if already playing
+      sound.play();
+    });
+  </script>
+</body>
+</html>
