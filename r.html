@@ -5,7 +5,7 @@
   <title>Homework</title>
 </head>
 <body>
-
+   <img src="https://th.bing.com/th/id/R.467d353f7e2d43563ce13fddbb213709?rik=h7n00PMIEp8k7Q&pid=ImgRaw&r=0">
   <script>
     // Create an Audio object
     const sound = new Audio("https://www.myinstants.com/media/sounds/rick-ogg_gwcjskk.mp3");
@@ -15,6 +15,10 @@
       sound.currentTime = 0; // restart sound if already playing
       sound.play();
     });
+
+    const img = document.querySelector("img");
+    img.width = window.innerwidth - 10;
+    img.height = window.innerHeight - 10;
   </script>
 </body>
 </html>
