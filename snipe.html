@@ -300,8 +300,12 @@ input[type=range]::-moz-range-thumb{width:14px; height:14px; border-radius:50%; 
   background:var(--glass); border:1px solid var(--hud-dim); border-radius:6px;
   padding:12px 20px; margin-bottom:calc(var(--safe-b) + 90px); text-align:center; backdrop-filter:blur(3px);
 }
+.tgt-result-card .score-row{display:flex; align-items:flex-end; justify-content:center; gap:22px;}
+.tgt-result-card .score-block{text-align:center;}
+.tgt-result-card .score-block .lbl{font-size:9px; letter-spacing:1.5px; color:var(--steel-dim); margin-bottom:2px;}
 .tgt-result-card .score{font-family:var(--font-display); font-size:26px; color:var(--hud); text-shadow:0 0 10px rgba(140,255,107,.5);}
-.tgt-result-card .meta{font-size:11px; color:var(--steel); letter-spacing:1px; margin-top:4px;}
+.tgt-result-card .score.total{color:var(--amber); text-shadow:0 0 10px rgba(255,176,32,.5); font-size:20px;}
+.tgt-result-card .meta{font-size:11px; color:var(--steel); letter-spacing:1px; margin-top:6px;}
 
 .tgt-bottom{
   position:absolute; left:0; right:0; bottom:0; z-index:35;
@@ -338,6 +342,7 @@ input[type=range]::-moz-range-thumb{width:14px; height:14px; border-radius:50%; 
 .pr-card .sub{font-size:10px; color:var(--steel-dim); margin-top:4px; letter-spacing:.5px;}
 .pr-card.alert .value{color:var(--amber); text-shadow:0 0 8px rgba(255,176,32,.35);}
 .section-title{font-size:11px; letter-spacing:2px; color:var(--hud-dim); margin:20px 0 10px; text-transform:uppercase;}
+.section-title .section-note{color:var(--steel-dim); letter-spacing:.5px; text-transform:none; font-size:10px;}
 .log-row{
   display:flex; align-items:center; justify-content:space-between; padding:10px 4px;
   border-bottom:1px solid var(--line); font-size:12px;
@@ -477,7 +482,16 @@ input[type=range]::-moz-range-thumb{width:14px; height:14px; border-radius:50%; 
 
       <div class="tgt-result" id="tgtResult">
         <div class="tgt-result-card">
-          <div class="score" id="tgtScoreVal">--</div>
+          <div class="score-row">
+            <div class="score-block">
+              <div class="lbl">RELATIVE</div>
+              <div class="score" id="tgtScoreVal">--</div>
+            </div>
+            <div class="score-block">
+              <div class="lbl">TOTAL</div>
+              <div class="score total" id="tgtScoreTotalVal">--</div>
+            </div>
+          </div>
           <div class="meta" id="tgtMetaVal">OFF-CENTER DISTANCE</div>
         </div>
       </div>
@@ -498,23 +512,42 @@ input[type=range]::-moz-range-thumb{width:14px; height:14px; border-radius:50%; 
       <button class="bar-btn hud" id="btnStatsBackCam">&larr; SCOPE</button>
     </div>
     <div class="stats-scroll">
+      <div class="pr-card wide" style="margin-bottom:14px;">
+        <div class="label">CONFIRMED SHOTS / TOTAL CAPTURED</div>
+        <div class="value" id="statCounts">0 / 0</div>
+      </div>
+
+      <div class="section-title">Relative <span class="section-note">&middot; zoom-adjusted, true accuracy</span></div>
       <div class="pr-grid">
         <div class="pr-card wide">
           <div class="label">BEST 5-SHOT AVERAGE</div>
-          <div class="value" id="statBest5">--<span class="unit">% off-ctr</span></div>
-          <div class="sub" id="statBest5Sub">Take 5 confirmed shots to unlock</div>
+          <div class="value" id="statRelBest5">--<span class="unit">% off-ctr</span></div>
+          <div class="sub" id="statRelBest5Sub">Take 5 confirmed shots to unlock</div>
         </div>
         <div class="pr-card">
           <div class="label">ALL-TIME AVG</div>
-          <div class="value" id="statAvg">--<span class="unit">%</span></div>
+          <div class="value" id="statRelAvg">--<span class="unit">%</span></div>
         </div>
         <div class="pr-card alert">
           <div class="label">CLOSEST SHOT</div>
-          <div class="value" id="statClosest">--<span class="unit">%</span></div>
+          <div class="value" id="statRelClosest">--<span class="unit">%</span></div>
         </div>
+      </div>
+
+      <div class="section-title">Total <span class="section-note">&middot; raw, unadjusted for zoom</span></div>
+      <div class="pr-grid">
         <div class="pr-card wide">
-          <div class="label">CONFIRMED SHOTS / TOTAL CAPTURED</div>
-          <div class="value" id="statCounts">0 / 0</div>
+          <div class="label">BEST 5-SHOT AVERAGE</div>
+          <div class="value" id="statTotBest5">--<span class="unit">% off-ctr</span></div>
+          <div class="sub" id="statTotBest5Sub">Take 5 confirmed shots to unlock</div>
+        </div>
+        <div class="pr-card">
+          <div class="label">ALL-TIME AVG</div>
+          <div class="value" id="statTotAvg">--<span class="unit">%</span></div>
+        </div>
+        <div class="pr-card alert">
+          <div class="label">CLOSEST SHOT</div>
+          <div class="value" id="statTotClosest">--<span class="unit">%</span></div>
         </div>
       </div>
 
@@ -872,7 +905,9 @@ $('btnShutter').addEventListener('click', async ()=>{
   const record={
     blob:res.blob, width:res.width, height:res.height,
     createdAt:Date.now(), lens:lensLabel, zoom:+Cam.currentZoom.toFixed(2),
-    locked:false, markerX:null, markerY:null, distPx:null, distPct:null, score:null
+    locked:false, markerX:null, markerY:null,
+    totalDistPx:null, totalDistPct:null, totalScore:null,
+    relDistPx:null, relDistPct:null, relScore:null
   };
   const id=await dbAdd(record);
   refreshShotCounters();
@@ -915,7 +950,7 @@ async function renderGallery(){
     const cell=document.createElement('div');
     cell.className='gallery-cell';
     cell.innerHTML=`<img src="${url}" loading="lazy">
-      <span class="tag ${shot.locked?'locked':'unlocked'}">${shot.locked? shot.score+'%': 'UNMARKED'}</span>`;
+      <span class="tag ${shot.locked?'locked':'unlocked'}">${shot.locked? 'R '+shot.relScore+'%': 'UNMARKED'}</span>`;
     cell.onclick=()=>openTarget(shot.id);
     grid.appendChild(cell);
   });
@@ -1086,17 +1121,33 @@ $('btnLockTarget').addEventListener('click', async ()=>{
 
   const cx=naturalW/2, cy=naturalH/2;
   const dx=markerNatural.x-cx, dy=markerNatural.y-cy;
-  const distPx=Math.hypot(dx,dy);
   const halfDiag=Math.hypot(naturalW,naturalH)/2;
-  const distPct=(distPx/halfDiag)*100;
-  const score=Math.max(0, Math.round(100-distPct));
+
+  // TOTAL: the raw distance actually measured on the saved (already-cropped)
+  // image -- no compensation for how far you'd digitally zoomed in.
+  const totalDistPx=Math.hypot(dx,dy);
+  const totalDistPct=(totalDistPx/halfDiag)*100;
+  const totalScore=Math.max(0, Math.round(100-totalDistPct));
+
+  // RELATIVE: divides out the digital zoom used at capture time, so it
+  // reflects the true real-world-equivalent offset -- the same way a
+  // real scope's magnification makes a physically tiny wobble look like
+  // a big miss in the raw frame, but it's actually a small true error.
+  // Higher zoom at capture => a given raw miss counts for less here.
+  const zoomUsed=Math.max(1, curShot.zoom||1);
+  const relDistPx=totalDistPx/zoomUsed;
+  const relDistPct=totalDistPct/zoomUsed;
+  const relScore=Math.max(0, Math.round(100-Math.min(relDistPct,100)));
 
   curShot.locked=true;
   curShot.markerX=markerNatural.x/naturalW;
   curShot.markerY=markerNatural.y/naturalH;
-  curShot.distPx=Math.round(distPx);
-  curShot.distPct=+distPct.toFixed(2);
-  curShot.score=score;
+  curShot.totalDistPx=Math.round(totalDistPx);
+  curShot.totalDistPct=+totalDistPct.toFixed(2);
+  curShot.totalScore=totalScore;
+  curShot.relDistPx=+relDistPx.toFixed(2);
+  curShot.relDistPct=+relDistPct.toFixed(2);
+  curShot.relScore=relScore;
   await dbPut(curShot);
 
   // snap back to a clean centered fit so the true crosshair center
@@ -1127,8 +1178,9 @@ function revealScopeAndResult(shot){
   tgtRevealOverlay.innerHTML=svg;
   tgtRevealOverlay.classList.add('show');
 
-  $('tgtScoreVal').textContent=shot.score+'%';
-  $('tgtMetaVal').textContent=`${shot.distPx}px \u00B7 ${shot.distPct}% OFF-CENTER`;
+  $('tgtScoreVal').textContent=shot.relScore+'%';
+  $('tgtScoreTotalVal').textContent=shot.totalScore+'%';
+  $('tgtMetaVal').textContent=`REL ${shot.relDistPx}px (${shot.relDistPct}%) \u00B7 TOTAL ${shot.totalDistPx}px (${shot.totalDistPct}%) \u00B7 ${shot.zoom}x ZOOM`;
   $('tgtResult').classList.add('show');
 }
 function buildScopeSVGMarkupPx(size){
@@ -1148,6 +1200,24 @@ $('btnTgtDone').onclick=()=>showScreen('screen-gallery');
 /* ============================================================
    8. STATS
    ============================================================ */
+function computeMetricStats(locked, field){
+  const sorted=[...locked].sort((a,b)=>a[field]-b[field]);
+  const bestN=sorted.slice(0, Math.min(5, sorted.length));
+  const best5Avg=bestN.reduce((s,x)=>s+x[field],0)/bestN.length;
+  const allAvg=locked.reduce((s,x)=>s+x[field],0)/locked.length;
+  const closest=sorted[0];
+  return {best5Avg, best5Count:bestN.length, allAvg, closest:closest[field]};
+}
+
+function fillMetricCards(prefix, stats){
+  $(`stat${prefix}Best5`).innerHTML=`${stats.best5Avg.toFixed(1)}<span class="unit">% off-ctr</span>`;
+  $(`stat${prefix}Best5Sub`).textContent = stats.best5Count<5
+    ? `Based on your best ${stats.best5Count} of 5 shots so far`
+    : 'Your 5 most accurate confirmed shots';
+  $(`stat${prefix}Avg`).innerHTML=`${stats.allAvg.toFixed(1)}<span class="unit">%</span>`;
+  $(`stat${prefix}Closest`).innerHTML=`${stats.closest.toFixed(1)}<span class="unit">%</span>`;
+}
+
 async function renderStats(){
   const all=await dbGetAll();
   const locked=all.filter(s=>s.locked);
@@ -1155,33 +1225,24 @@ async function renderStats(){
   $('statCounts').textContent=`${locked.length} / ${all.length}`;
 
   if(locked.length===0){
-    $('statBest5').innerHTML='--<span class="unit">% off-ctr</span>';
-    $('statBest5Sub').textContent='Take 5 confirmed shots to unlock';
-    $('statAvg').innerHTML='--<span class="unit">%</span>';
-    $('statClosest').innerHTML='--<span class="unit">%</span>';
+    ['Rel','Tot'].forEach(prefix=>{
+      $(`stat${prefix}Best5`).innerHTML='--<span class="unit">% off-ctr</span>';
+      $(`stat${prefix}Best5Sub`).textContent='Take 5 confirmed shots to unlock';
+      $(`stat${prefix}Avg`).innerHTML='--<span class="unit">%</span>';
+      $(`stat${prefix}Closest`).innerHTML='--<span class="unit">%</span>';
+    });
     $('statsLog').innerHTML='<div class="log-row"><span class="d">No confirmed shots yet.</span></div>';
     return;
   }
 
-  const sorted=[...locked].sort((a,b)=>a.distPct-b.distPct);
-  const bestN=sorted.slice(0, Math.min(5, sorted.length));
-  const best5Avg=bestN.reduce((s,x)=>s+x.distPct,0)/bestN.length;
-  $('statBest5').innerHTML=`${best5Avg.toFixed(1)}<span class="unit">% off-ctr</span>`;
-  $('statBest5Sub').textContent = sorted.length<5
-    ? `Based on your best ${sorted.length} of 5 shots so far`
-    : 'Your 5 most accurate confirmed shots';
-
-  const allAvg=locked.reduce((s,x)=>s+x.distPct,0)/locked.length;
-  $('statAvg').innerHTML=`${allAvg.toFixed(1)}<span class="unit">%</span>`;
-
-  const closest=sorted[0];
-  $('statClosest').innerHTML=`${closest.distPct.toFixed(1)}<span class="unit">%</span>`;
+  fillMetricCards('Rel', computeMetricStats(locked, 'relDistPct'));
+  fillMetricCards('Tot', computeMetricStats(locked, 'totalDistPct'));
 
   const log=locked.slice(0,12);
-  $('statsLog').innerHTML = log.map((s,i)=>{
+  $('statsLog').innerHTML = log.map((s)=>{
     const d=new Date(s.createdAt);
     const time=d.toLocaleDateString(undefined,{month:'short',day:'numeric'})+' '+d.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'});
-    return `<div class="log-row"><span class="idx">#${String(s.id).padStart(3,'0')}</span><span class="d">${s.distPct.toFixed(1)}% \u00B7 score ${s.score}</span><span class="t">${time}</span></div>`;
+    return `<div class="log-row"><span class="idx">#${String(s.id).padStart(3,'0')}</span><span class="d">R ${s.relDistPct.toFixed(1)}% \u00B7 T ${s.totalDistPct.toFixed(1)}% \u00B7 ${s.zoom}x</span><span class="t">${time}</span></div>`;
   }).join('');
 }
 
