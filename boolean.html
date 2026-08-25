@@ -147,6 +147,19 @@
     font-weight: 600; text-align: center; letter-spacing: 0.02em;
   }
 
+  /* Timer Component */
+  .timer-card{
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    padding: 10px 16px; display:flex; flex-direction:column; gap:6px;
+  }
+  .timer-head{ display:flex; justify-content:space-between; align-items:center; font-size:12px; }
+  .timer-label{ color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; }
+  .timer-value{ font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--amp); }
+  .timer-bar-bg{ height:6px; background:var(--panel-2); border-radius:3px; overflow:hidden; position:relative; }
+  .timer-bar-fill{ height:100%; width:100%; background:linear-gradient(90deg, var(--amp), var(--amp-2)); transition: width 0.1s linear, background 0.3s; }
+  .timer-bar-fill.warning{ background: var(--warn); }
+  .timer-bar-fill.danger{ background: var(--false); }
+
   .expr-card{
     background: var(--panel);
     border: 1px solid var(--line);
@@ -253,7 +266,7 @@
     <p class="subtitle">Solve TRUE / FALSE logic puzzles built from AND, OR and NOT. Your rating sets the difficulty — climb it by getting problems right.</p>
     <label class="field-label" for="ratingInput">Starting rating</label>
     <input type="number" id="ratingInput" value="100" step="10" min="0">
-    <p class="hint">Every 100 rating points unlocks one extra layer of logic. Incorrect answers subtract 5 rating points and return for review later.</p>
+    <p class="hint">Every 100 rating points unlocks one extra layer of logic. You must solve each problem within 5<sup>depth</sup> seconds or take a 5-point penalty.</p>
     <button class="btn btn-primary" id="startBtn">Start training →</button>
   </div>
 
@@ -290,6 +303,16 @@
     </div>
 
     <div class="review-banner" id="reviewBanner">⚡ Review Mode: Re-testing a past mistake</div>
+
+    <div class="timer-card">
+      <div class="timer-head">
+        <span class="timer-label">Time Remaining</span>
+        <span class="timer-value" id="timerValue">5.0s</span>
+      </div>
+      <div class="timer-bar-bg">
+        <div class="timer-bar-fill" id="timerBarFill"></div>
+      </div>
+    </div>
 
     <div class="expr-card">
       <div class="expr-text mono" id="exprText">TRUE</div>
@@ -337,7 +360,7 @@
   var LAST_RATING_KEY = "boolBlitz_lastRating_v1";
   var REVIEW_QUEUE_KEY = "boolBlitz_reviewQueue_v1";
   var MAX_LEVEL = 10;
-  var REVIEW_INTERVAL = 3; // Serve a review question after every 3 standard problems
+  var REVIEW_INTERVAL = 3; 
 
   // ---------- Persistent stats ----------
   function loadStats(){
@@ -377,6 +400,11 @@
   var isReviewProblem = false;
   var activeReviewIndex = -1;
 
+  // Timer State
+  var timerInterval = null;
+  var allowedTimeSec = 5;
+  var currentDepth = 1;
+
   // ---------- Elements ----------
   var el = {
     setupScreen: document.getElementById('setupScreen'),
@@ -399,6 +427,8 @@
     closeStatsBtn: document.getElementById('closeStatsBtn'),
     resetStatsBtn: document.getElementById('resetStatsBtn'),
     reviewBanner: document.getElementById('reviewBanner'),
+    timerValue: document.getElementById('timerValue'),
+    timerBarFill: document.getElementById('timerBarFill'),
     chips: Array.prototype.slice.call(document.querySelectorAll('.chip'))
   };
 
@@ -509,6 +539,49 @@
     el.levelValue.textContent = computeLevel();
   }
 
+  // ---------- Timer Logic ----------
+  function stopTimer(){
+    if(timerInterval){
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+  }
+
+  function startTimer(){
+    stopTimer();
+    // Time limit: 5^depth seconds
+    allowedTimeSec = Math.pow(5, currentDepth);
+    
+    var remaining = allowedTimeSec;
+    updateTimerUI(remaining, allowedTimeSec);
+
+    var tickMs = 100;
+    timerInterval = setInterval(function(){
+      remaining -= (tickMs / 1000);
+      if(remaining <= 0){
+        remaining = 0;
+        updateTimerUI(0, allowedTimeSec);
+        stopTimer();
+        handleAnswer(null, true); // Timeout triggered
+      } else {
+        updateTimerUI(remaining, allowedTimeSec);
+      }
+    }, tickMs);
+  }
+
+  function updateTimerUI(remainingSec, totalSec){
+    el.timerValue.textContent = remainingSec.toFixed(1) + 's';
+    var pct = Math.max(0, Math.min(100, (remainingSec / totalSec) * 100));
+    el.timerBarFill.style.width = pct + '%';
+
+    el.timerBarFill.classList.remove('warning', 'danger');
+    if(pct < 25){
+      el.timerBarFill.classList.add('danger');
+    } else if(pct < 50){
+      el.timerBarFill.classList.add('warning');
+    }
+  }
+
   // ---------- Game flow ----------
   function newProblem(){
     awaitingNext = false;
@@ -516,7 +589,8 @@
     el.trueBtn.disabled = false;
     el.falseBtn.disabled = false;
 
-    // Check if it's time to serve a review problem from previous mistakes
+    currentDepth = computeLevel();
+
     if(reviewQueue.length > 0 && standardProblemsSolved > 0 && standardProblemsSolved % REVIEW_INTERVAL === 0){
       isReviewProblem = true;
       activeReviewIndex = randInt(reviewQueue.length);
@@ -526,13 +600,13 @@
       isReviewProblem = false;
       activeReviewIndex = -1;
       el.reviewBanner.style.display = 'none';
-      var level = computeLevel();
-      currentTree = generateTree(level);
+      currentTree = generateTree(currentDepth);
     }
 
     currentAnswer = evalTree(currentTree);
     el.exprText.innerHTML = renderNode(currentTree, true);
     problemStartTime = performance.now();
+    startTimer();
   }
 
   function updateHeader(){
@@ -557,16 +631,18 @@
     saveStats(stats);
   }
 
-  function handleAnswer(userAnswer){
+  function handleAnswer(userAnswer, isTimeout){
     if(awaitingNext) return;
     awaitingNext = true;
+    stopTimer();
+
     el.trueBtn.disabled = true;
     el.falseBtn.disabled = true;
 
     var elapsed = performance.now() - problemStartTime;
-    var correct = (userAnswer === currentAnswer);
+    var correct = !isTimeout && (userAnswer === currentAnswer);
 
-    // Rating adjustment: +1 for correct, -5 penalty for wrong
+    // Rating adjustment: +1 for correct, -5 penalty for wrong or timeout
     rating = Math.max(0, rating + (correct ? 1 : -5));
     recordAnswer(correct, elapsed);
 
@@ -574,15 +650,12 @@
       standardProblemsSolved++;
     }
 
-    // Handle review queue logic
     if(correct){
       if(isReviewProblem && activeReviewIndex !== -1){
-        // Remove successfully reviewed mistake from queue
         reviewQueue.splice(activeReviewIndex, 1);
         saveReviewQueue(reviewQueue);
       }
     } else {
-      // Save current tree into review queue if wrong
       reviewQueue.push(currentTree);
       saveReviewQueue(reviewQueue);
     }
@@ -598,13 +671,16 @@
       el.feedbackSub.textContent = subText;
       el.stepsBox.innerHTML = '';
       spawnConfetti();
-      playTone(correct);
+      playTone(true);
     } else {
       el.feedbackBadge.className = 'badge incorrect';
-      el.feedbackBadge.textContent = '✕ Not quite';
-      el.feedbackSub.textContent = 'The correct answer was ' + bstr(currentAnswer) + '. Rating −5. Saved for future review! Here\'s how to solve it:';
+      el.feedbackBadge.textContent = isTimeout ? '⏱ Time\'s Up!' : '✕ Not quite';
+      var reasonText = isTimeout 
+        ? 'You ran out of time (' + allowedTimeSec + 's limit). Rating −5.' 
+        : 'The correct answer was ' + bstr(currentAnswer) + '. Rating −5.';
+      el.feedbackSub.textContent = reasonText + ' Saved for future review! Solution:';
       renderSteps();
-      playTone(correct);
+      playTone(false);
     }
   }
 
@@ -687,8 +763,8 @@
     newProblem();
   });
 
-  el.trueBtn.addEventListener('click', function(){ handleAnswer(true); });
-  el.falseBtn.addEventListener('click', function(){ handleAnswer(false); });
+  el.trueBtn.addEventListener('click', function(){ handleAnswer(true, false); });
+  el.falseBtn.addEventListener('click', function(){ handleAnswer(false, false); });
   el.nextBtn.addEventListener('click', function(){ updateHeader(); newProblem(); });
 
   el.chips.forEach(function(chip){
