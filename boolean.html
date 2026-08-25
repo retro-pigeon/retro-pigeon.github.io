@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Boolean Hero - Logic Practice</title>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+
+    .container { background: var(--card); border-radius: 16px; padding: 32px; max-width: 650px; width: 100%; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); }
+    h1 { text-align: center; margin-bottom: 24px; color: var(--primary); font-size: 2rem; }
+    .hidden { display: none !important; }
+
+    /* Setup Screen */
+    .form-group { margin-bottom: 20px; }
+    label { display: block; margin-bottom: 8px; color: var(--text-muted); font-size: 0.9rem; }
+    input[type="number"] { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 1rem; }
+    
+    /* Stats Header */
+    .dashboard { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; text-align: center; }
+    .stat-card { background: #0f172a; padding: 12px; border-radius: 8px; border: 1px solid #334155; }
+    .stat-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .stat-val { font-size: 1.25rem; font-weight: bold; margin-top: 4px; }
+
+    /* Expression Display */
+    .problem-box { background: #0f172a; border: 2px solid #334155; border-radius: 12px; padding: 24px; text-align: center; margin-bottom: 24px; min-height: 120px; display: flex; align-items: center; justify-content: center; }
+    .expression { font-family: monospace; font-size: 1.4rem; font-weight: bold; letter-spacing: 1px; word-break: break-word; color: #38bdf8; }
+    .operator { color: #f43f5e; }
+    .value-true { color: #4ade80; }
+    .value-false { color: #f87171; }
+
+    /* Controls & Buttons */
+    .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+    .btn { padding: 14px 24px; border-radius: 8px; border: none; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+    .btn-true { background: var(--success); color: #fff; }
+    .btn-true:hover { opacity: 0.9; transform: translateY(-2px); }
+    .btn-false { background: var(--danger); color: #fff; }
+    .btn-false:hover { opacity: 0.9; transform: translateY(-2px); }
+    .btn-action { background: var(--primary); color: #fff; width: 100%; }
+    .btn-action:hover { background: var(--primary-hover); }
+
+    /* Difficulty Select */
+    .diff-group { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; background: #0f172a; padding: 8px 16px; border-radius: 8px; }
+    .diff-selector { display: flex; gap: 6px; }
+    .diff-btn { padding: 6px 12px; border: 1px solid #334155; background: #1e293b; color: var(--text); border-radius: 6px; cursor: pointer; font-weight: bold; }
+    .diff-btn.active { background: var(--primary); border-color: var(--primary); }
+
+    /* Solution Box */
+    .solution-box { background: #0f172a; border-left: 4px solid var(--danger); padding: 16px; border-radius: 4px; margin-bottom: 24px; }
+    .solution-step { font-family: monospace; font-size: 1rem; margin-top: 8px; color: var(--text-muted); }
+    .solution-step strong { color: var(--text); }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>⚡ Boolean Hero</h1>
+
+  <!-- Start Screen -->
+  <div id="start-screen">
+    <div class="form-group">
+      <label for="initial-score">Starting Score / Rating</label>
+      <input type="number" id="initial-score" value="100" min="1">
+    </div>
+    <button class="btn btn-action" onclick="startGame()">Start Practice</button>
+  </div>
+
+  <!-- Game Screen -->
+  <div id="game-screen" class="hidden">
+    <div class="dashboard">
+      <div class="stat-card">
+        <div class="stat-label">Score</div>
+        <div class="stat-val" id="score-val">100</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Level</div>
+        <div class="stat-val" id="level-val">1</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Accuracy</div>
+        <div class="stat-val" id="accuracy-val">100%</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg Time</div>
+        <div class="stat-val" id="avg-time-val">0.0s</div>
+      </div>
+    </div>
+
+    <div class="diff-group">
+      <span style="font-size: 0.9rem; color: var(--text-muted);">Difficulty Modifier:</span>
+      <div class="diff-selector">
+        <button class="diff-btn" onclick="setDiff(-3)">-3</button>
+        <button class="diff-btn" onclick="setDiff(-2)">-2</button>
+        <button class="diff-btn" onclick="setDiff(-1)">-1</button>
+        <button class="diff-btn active" onclick="setDiff(0)">0</button>
+        <button class="diff-btn" onclick="setDiff(1)">+1</button>
+        <button class="diff-btn" onclick="setDiff(2)">+2</button>
+        <button class="diff-btn" onclick="setDiff(3)">+3</button>
+      </div>
+    </div>
+
+    <div class="problem-box">
+      <div id="expression-display" class="expression"></div>
+    </div>
+
+    <div id="answer-controls" class="controls">
+      <button class="btn btn-true" onclick="handleAnswer(true)">TRUE</button>
+      <button class="btn btn-false" onclick="handleAnswer(false)">FALSE</button>
+    </div>
+
+    <div id="feedback-box" class="hidden">
+      <div id="solution-details" class="solution-box"></div>
+      <button class="btn btn-action" onclick="nextProblem()">Next Problem</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // State
+  let score = 100;
+  let diffModifier = 0;
+  let currentProblem = null;
+  let startTime = 0;
+  let stats = { total: 0, correct: 0, totalTime: 0 };
+
+  // Load persistent stats
+  if (localStorage.getItem('booleanStats')) {
+    stats = JSON.parse(localStorage.getItem('booleanStats'));
+  }
+
+  function startGame() {
+    score = parseInt(document.getElementById('initial-score').value) || 100;
+    document.getElementById('start-screen').classList.add('hidden');
+    document.getElementById('game-screen').classList.remove('hidden');
+    updateDashboard();
+    nextProblem();
+  }
+
+  function setDiff(mod) {
+    diffModifier = mod;
+    document.querySelectorAll('.diff-btn').forEach(btn => {
+      btn.classList.toggle('active', parseInt(btn.innerText) === mod);
+    });
+    nextProblem();
+  }
+
+  // Abstract Syntax Tree Nodes
+  class ValueNode {
+    constructor(val) { this.type = 'val'; this.val = val; }
+    evaluate() { return { val: this.val, str: this.val ? 'TRUE' : 'FALSE' }; }
+  }
+
+  class UnaryNode {
+    constructor(child) { this.type = 'unary'; this.op = 'NOT'; this.child = child; }
+    evaluate() {
+      const childRes = this.child.evaluate();
+      return { val: !childRes.val, str: `NOT ${childRes.val ? 'TRUE' : 'FALSE'}` };
+    }
+  }
+
+  class BinaryNode {
+    constructor(left, op, right) { this.type = 'binary'; this.left = left; this.op = op; this.right = right; }
+    evaluate() {
+      const l = this.left.evaluate();
+      const r = this.right.evaluate();
+      const val = this.op === 'AND' ? (l.val && r.val) : (l.val || r.val);
+      return { val, str: `(${l.val ? 'TRUE' : 'FALSE'} ${this.op} ${r.val ? 'TRUE' : 'FALSE'})` };
+    }
+  }
+
+  // Generator Algorithm
+  function generateAST(expansions) {
+    let tree = new ValueNode(null);
+
+    function getRandomLeaf(node) {
+      if (node.type === 'val') return node;
+      if (node.type === 'unary') return getRandomLeaf(node.child);
+      return Math.random() < 0.5 ? getRandomLeaf(node.left) : getRandomLeaf(node.right);
+    }
+
+    function replaceNode(root, target, replacement) {
+      if (root === target) return replacement;
+      if (root.type === 'unary') {
+        root.child = replaceNode(root.child, target, replacement);
+      } else if (root.type === 'binary') {
+        root.left = replaceNode(root.left, target, replacement);
+        root.right = replaceNode(root.right, target, replacement);
+      }
+      return root;
+    }
+
+    for (let i = 0; i < expansions; i++) {
+      const target = getRandomLeaf(tree);
+      let replacement;
+      if (Math.random() < 1/3) {
+        replacement = new UnaryNode(new ValueNode(null));
+      } else {
+        const op = Math.random() < 0.5 ? 'AND' : 'OR';
+        replacement = new BinaryNode(new ValueNode(null), op, new ValueNode(null));
+      }
+      tree = replaceNode(tree, target, replacement);
+    }
+
+    function fillValues(node) {
+      if (node.type === 'val') {
+        node.val = Math.random() < 0.5;
+      } else if (node.type === 'unary') {
+        fillValues(node.child);
+      } else if (node.type === 'binary') {
+        fillValues(node.left);
+        fillValues(node.right);
+      }
+    }
+
+    fillValues(tree);
+    return tree;
+  }
+
+  function stringifyAST(node) {
+    if (node.type === 'val') return node.val ? 'TRUE' : 'FALSE';
+    if (node.type === 'unary') return `NOT ${stringifyAST(node.child)}`;
+    if (node.type === 'binary') return `(${stringifyAST(node.left)} ${node.op} ${stringifyAST(node.right)})`;
+  }
+
+  function getStepByStepSolution(node) {
+    const steps = [];
+    
+    function reduce(curr) {
+      if (curr.type === 'val') return { node: curr, changed: false };
+
+      if (curr.type === 'unary') {
+        if (curr.child.type === 'val') {
+          return { node: new ValueNode(!curr.child.val), changed: true };
+        }
+        const inner = reduce(curr.child);
+        return { node: new UnaryNode(inner.node), changed: inner.changed };
+      }
+
+      if (curr.type === 'binary') {
+        if (curr.left.type === 'val' && curr.right.type === 'val') {
+          const res = curr.op === 'AND' ? (curr.left.val && curr.right.val) : (curr.left.val || curr.right.val);
+          return { node: new ValueNode(res), changed: true };
+        }
+        if (curr.left.type !== 'val') {
+          const inner = reduce(curr.left);
+          return { node: new BinaryNode(inner.node, curr.op, curr.right), changed: inner.changed };
+        }
+        const inner = reduce(curr.right);
+        return { node: new BinaryNode(curr.left, curr.op, inner.node), changed: inner.changed };
+      }
+    }
+
+    let currentTree = node;
+    steps.push(stringifyAST(currentTree));
+
+    while (currentTree.type !== 'val') {
+      const stepResult = reduce(currentTree);
+      currentTree = stepResult.node;
+      steps.push(stringifyAST(currentTree));
+    }
+
+    return steps;
+  }
+
+  function calculateResult(node) {
+    if (node.type === 'val') return node.val;
+    if (node.type === 'unary') return !calculateResult(node.child);
+    if (node.type === 'binary') {
+      const l = calculateResult(node.left);
+      const r = calculateResult(node.right);
+      return node.op === 'AND' ? (l && r) : (l || r);
+    }
+  }
+
+  function nextProblem() {
+    document.getElementById('feedback-box').classList.add('hidden');
+    document.getElementById('answer-controls').classList.remove('hidden');
+
+    const calculatedLevel = Math.floor(score / 100);
+    const expansions = Math.max(1, calculatedLevel + diffModifier);
+    
+    const ast = generateAST(expansions);
+    const textExp = stringifyAST(ast);
+    const answer = calculateResult(ast);
+    const steps = getStepByStepSolution(ast);
+
+    currentProblem = { ast, answer, steps };
+    
+    // Style expression display
+    let formattedText = textExp
+      .replace(/TRUE/g, '<span class="value-true">TRUE</span>')
+      .replace(/FALSE/g, '<span class="value-false">FALSE</span>')
+      .replace(/AND|OR|NOT/g, match => `<span class="operator">${match}</span>`);
+
+    document.getElementById('expression-display').innerHTML = formattedText;
+    startTime = Date.now();
+  }
+
+  function handleAnswer(userChoice) {
+    const elapsedSecs = (Date.now() - startTime) / 1000;
+    stats.total++;
+    stats.totalTime += elapsedSecs;
+
+    const isCorrect = userChoice === currentProblem.answer;
+
+    if (isCorrect) {
+      score += 1;
+      stats.correct++;
+      confetti({ particleCount: 80, spread: 60, origin: { y: 0.7 } });
+      updateDashboard();
+      nextProblem();
+    } else {
+      score = Math.max(0, score - 2);
+      updateDashboard();
+      
+      document.getElementById('answer-controls').classList.add('hidden');
+      const solutionBox = document.getElementById('solution-details');
+      
+      let html = `<strong>Incorrect.</strong> Step-by-step resolution:<br>`;
+      currentProblem.steps.forEach((step, idx) => {
+        html += `<div class="solution-step">Step ${idx + 1}: ${step}</div>`;
+      });
+      
+      solutionBox.innerHTML = html;
+      document.getElementById('feedback-box').classList.remove('hidden');
+    }
+
+    localStorage.setItem('booleanStats', JSON.stringify(stats));
+  }
+
+  function updateDashboard() {
+    document.getElementById('score-val').innerText = score;
+    document.getElementById('level-val').innerText = Math.floor(score / 100);
+    
+    const accuracy = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 100;
+    const avgTime = stats.total > 0 ? (stats.totalTime / stats.total).toFixed(1) : '0.0';
+    
+    document.getElementById('accuracy-val').innerText = `${accuracy}%`;
+    document.getElementById('avg-time-val').innerText = `${avgTime}s`;
+  }
+</script>
+</body>
+</html>
