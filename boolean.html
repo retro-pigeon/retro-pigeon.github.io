@@ -1,356 +1,717 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Boolean Hero - Logic Practice</title>
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-  <style>
-    :root {
-      --bg: #0f172a;
-      --card: #1e293b;
-      --primary: #6366f1;
-      --primary-hover: #4f46e5;
-      --success: #22c55e;
-      --danger: #ef4444;
-      --text: #f8fafc;
-      --text-muted: #94a3b8;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Boolean Blitz — Logic Training</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0c1420;
+    --bg-grid: #101b2c;
+    --panel: #131f30;
+    --panel-2: #182740;
+    --line: #22334c;
+    --text: #e7edf5;
+    --muted: #7c8ba3;
+    --true: #57e6a1;
+    --true-dim: #1f4a3a;
+    --false: #ff6f8e;
+    --false-dim: #4a1f2b;
+    --amp: #7c9bff;
+    --amp-2: #b98cff;
+    --warn: #ffcc66;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(circle at 20% -10%, #16233a 0%, transparent 45%),
+      radial-gradient(circle at 100% 10%, #1a1330 0%, transparent 40%),
+      var(--bg);
+    background-image:
+      linear-gradient(var(--bg-grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px),
+      radial-gradient(circle at 20% -10%, #16233a 0%, transparent 45%),
+      radial-gradient(circle at 100% 10%, #1a1330 0%, transparent 40%);
+    background-size: 42px 42px, 42px 42px, auto, auto;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height:100%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding: 24px;
+  }
+  .display{font-family:'Space Grotesk', sans-serif;}
+  .mono{font-family:'JetBrains Mono', monospace;}
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
-    body { background-color: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+  /* ---------- Setup screen ---------- */
+  .card{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+  }
+  #setupScreen{
+    width: 100%;
+    max-width: 460px;
+    padding: 40px 36px;
+    text-align:center;
+  }
+  .logo-mark{
+    width:56px;height:56px;margin:0 auto 18px;
+    border-radius: 14px;
+    background: linear-gradient(145deg, var(--amp), var(--amp-2));
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:22px;
+    box-shadow: 0 0 0 6px rgba(124,155,255,0.12), 0 8px 24px rgba(124,155,255,0.35);
+  }
+  h1.title{
+    font-size: 28px; margin: 0 0 6px; font-weight:700; letter-spacing:-0.5px;
+  }
+  .subtitle{color:var(--muted); font-size:14.5px; margin:0 0 28px; line-height:1.5;}
+  .field-label{
+    display:block; text-align:left; font-size:12.5px; letter-spacing:0.06em;
+    text-transform:uppercase; color:var(--muted); margin-bottom:8px; font-weight:600;
+  }
+  input[type=number]{
+    width:100%; padding:14px 16px; font-size:20px; border-radius:12px;
+    border:1px solid var(--line); background:var(--panel-2); color:var(--text);
+    font-family:'JetBrains Mono',monospace; font-weight:600; text-align:center;
+    outline:none; transition: border-color .15s, box-shadow .15s;
+  }
+  input[type=number]:focus{ border-color:var(--amp); box-shadow:0 0 0 3px rgba(124,155,255,0.18);}
+  .hint{font-size:12.5px; color:var(--muted); margin-top:10px; text-align:left; line-height:1.5;}
+  .btn{
+    border:none; cursor:pointer; font-family:'Space Grotesk',sans-serif; font-weight:600;
+    transition: transform .1s ease, box-shadow .15s ease, opacity .15s ease, background .15s ease;
+  }
+  .btn:active{ transform: scale(0.97); }
+  .btn-primary{
+    width:100%; margin-top:22px; padding:15px; font-size:16px; border-radius:12px;
+    background: linear-gradient(135deg, var(--amp), var(--amp-2)); color:#0c1420;
+    box-shadow: 0 8px 20px rgba(124,155,255,0.3);
+  }
+  .btn-primary:hover{ box-shadow: 0 10px 26px rgba(124,155,255,0.45); }
 
-    .container { background: var(--card); border-radius: 16px; padding: 32px; max-width: 650px; width: 100%; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); }
-    h1 { text-align: center; margin-bottom: 24px; color: var(--primary); font-size: 2rem; }
-    .hidden { display: none !important; }
+  /* ---------- Game screen ---------- */
+  #gameScreen{ width:100%; max-width: 640px; display:none; flex-direction:column; gap:16px; }
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    background:var(--panel); border:1px solid var(--line); border-radius:16px;
+    padding:14px 18px;
+  }
+  .brand{ display:flex; align-items:center; gap:10px; }
+  .brand .dot{
+    width:10px;height:10px;border-radius:50%;
+    background: var(--true); box-shadow:0 0 10px var(--true);
+    animation: pulse 2.2s ease-in-out infinite;
+  }
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:0.35;} }
+  .brand-name{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:15px; }
+  .stat-group{ display:flex; gap:18px; align-items:center; }
+  .stat{ text-align:right; }
+  .stat .label{ font-size:10.5px; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; }
+  .stat .value{ font-family:'JetBrains Mono',monospace; font-weight:700; font-size:17px; }
+  #ratingValue{ color: var(--amp); }
+  #streakValue{ color: var(--warn); }
+  .icon-btn{
+    width:36px;height:36px;border-radius:10px;background:var(--panel-2);
+    border:1px solid var(--line); color:var(--muted); display:flex;align-items:center;justify-content:center;
+    cursor:pointer; font-size:16px;
+  }
+  .icon-btn:hover{ color:var(--text); border-color:var(--amp); }
 
-    /* Setup Screen */
-    .form-group { margin-bottom: 20px; }
-    label { display: block; margin-bottom: 8px; color: var(--text-muted); font-size: 0.9rem; }
-    input[type="number"] { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 1rem; }
-    
-    /* Stats Header */
-    .dashboard { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; text-align: center; }
-    .stat-card { background: #0f172a; padding: 12px; border-radius: 8px; border: 1px solid #334155; }
-    .stat-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
-    .stat-val { font-size: 1.25rem; font-weight: bold; margin-top: 4px; }
+  .difficulty-row{
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+    background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:12px 16px;
+  }
+  .difficulty-row .dr-label{ font-size:12px; color:var(--muted); margin-right:4px; text-transform:uppercase; letter-spacing:0.05em;}
+  .chip{
+    padding:7px 12px; border-radius:9px; background:var(--panel-2); border:1px solid var(--line);
+    color:var(--muted); font-family:'JetBrains Mono',monospace; font-size:13.5px; font-weight:600; cursor:pointer;
+  }
+  .chip.active{ background: rgba(124,155,255,0.15); border-color: var(--amp); color: var(--amp); }
+  .level-badge{
+    margin-left:auto; font-size:12px; color:var(--muted); font-family:'JetBrains Mono',monospace;
+  }
+  .level-badge b{ color: var(--amp-2); }
 
-    /* Expression Display */
-    .problem-box { background: #0f172a; border: 2px solid #334155; border-radius: 12px; padding: 24px; text-align: center; margin-bottom: 24px; min-height: 120px; display: flex; align-items: center; justify-content: center; }
-    .expression { font-family: monospace; font-size: 1.4rem; font-weight: bold; letter-spacing: 1px; word-break: break-word; color: #38bdf8; }
-    .operator { color: #f43f5e; }
-    .value-true { color: #4ade80; }
-    .value-false { color: #f87171; }
+  /* Review Banner */
+  .review-banner{
+    display:none; background: rgba(255,204,102,0.12); border: 1px solid var(--warn);
+    color: var(--warn); border-radius: 12px; padding: 10px 16px; font-size: 13px;
+    font-weight: 600; text-align: center; letter-spacing: 0.02em;
+  }
 
-    /* Controls & Buttons */
-    .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
-    .btn { padding: 14px 24px; border-radius: 8px; border: none; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: all 0.2s; }
-    .btn-true { background: var(--success); color: #fff; }
-    .btn-true:hover { opacity: 0.9; transform: translateY(-2px); }
-    .btn-false { background: var(--danger); color: #fff; }
-    .btn-false:hover { opacity: 0.9; transform: translateY(-2px); }
-    .btn-action { background: var(--primary); color: #fff; width: 100%; }
-    .btn-action:hover { background: var(--primary-hover); }
+  .expr-card{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 44px 28px;
+    min-height: 150px;
+    display:flex; align-items:center; justify-content:center;
+    position:relative; overflow:hidden;
+  }
+  .expr-card::before{
+    content:""; position:absolute; inset:0;
+    background: radial-gradient(circle at 50% 0%, rgba(124,155,255,0.08), transparent 60%);
+    pointer-events:none;
+  }
+  .expr-text{
+    font-family:'JetBrains Mono',monospace; font-weight:600; font-size: clamp(16px, 4vw, 22px);
+    line-height:1.9; text-align:center; letter-spacing:0.3px; word-spacing:2px;
+  }
+  .op{ color: var(--amp); font-weight:700; padding:1px 3px;}
+  .op-not{ color: var(--amp-2); font-weight:700; padding:1px 3px;}
+  .lit{
+    display:inline-flex; align-items:center; gap:5px; padding:2px 9px; border-radius:7px;
+    font-size:0.92em; font-weight:700;
+  }
+  .lit::before{ content:""; width:6px;height:6px;border-radius:50%; }
+  .lit-true{ background: var(--true-dim); color: var(--true); }
+  .lit-true::before{ background: var(--true); box-shadow:0 0 6px var(--true); }
+  .lit-false{ background: var(--false-dim); color: var(--false); }
+  .lit-false::before{ background: var(--false); box-shadow:0 0 6px var(--false); }
 
-    /* Difficulty Select */
-    .diff-group { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; background: #0f172a; padding: 8px 16px; border-radius: 8px; }
-    .diff-selector { display: flex; gap: 6px; }
-    .diff-btn { padding: 6px 12px; border: 1px solid #334155; background: #1e293b; color: var(--text); border-radius: 6px; cursor: pointer; font-weight: bold; }
-    .diff-btn.active { background: var(--primary); border-color: var(--primary); }
+  .answer-row{ display:flex; gap:14px; }
+  .answer-btn{
+    flex:1; padding:20px; border-radius:16px; font-size:18px; font-weight:700;
+    border:1px solid var(--line); display:flex; align-items:center; justify-content:center; gap:10px;
+  }
+  .answer-btn.true-btn{ background: rgba(87,230,161,0.08); color: var(--true); }
+  .answer-btn.true-btn:hover{ background: rgba(87,230,161,0.16); border-color: var(--true); }
+  .answer-btn.false-btn{ background: rgba(255,111,142,0.08); color: var(--false); }
+  .answer-btn.false-btn:hover{ background: rgba(255,111,142,0.16); border-color: var(--false); }
+  .answer-btn:disabled{ opacity:0.4; cursor:default; transform:none; }
 
-    /* Solution Box */
-    .solution-box { background: #0f172a; border-left: 4px solid var(--danger); padding: 16px; border-radius: 4px; margin-bottom: 24px; }
-    .solution-step { font-family: monospace; font-size: 1rem; margin-top: 8px; color: var(--text-muted); }
-    .solution-step strong { color: var(--text); }
-  </style>
+  .feedback-card{
+    display:none; background:var(--panel); border:1px solid var(--line); border-radius:18px; padding:22px 24px;
+  }
+  .feedback-head{ display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+  .feedback-head .badge{
+    font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:16px; padding:4px 12px; border-radius:8px;
+  }
+  .badge.correct{ background: var(--true-dim); color:var(--true); }
+  .badge.incorrect{ background: var(--false-dim); color:var(--false); }
+  .feedback-sub{ color:var(--muted); font-size:13px; margin-bottom:14px; }
+  .steps{ display:flex; flex-direction:column; gap:8px; margin: 12px 0 18px; }
+  .step-row{
+    display:flex; align-items:center; gap:10px; background:var(--panel-2); border:1px solid var(--line);
+    border-radius:10px; padding:10px 14px; font-family:'JetBrains Mono',monospace; font-size:13.5px;
+  }
+  .step-idx{ color:var(--muted); font-weight:700; min-width:20px; }
+  .step-calc{ color:var(--warn); }
+  .step-arrow{ color:var(--muted); }
+  .btn-next{
+    width:100%; padding:14px; border-radius:12px; font-size:15px;
+    background: linear-gradient(135deg, var(--amp), var(--amp-2)); color:#0c1420;
+  }
+
+  /* ---------- Stats modal ---------- */
+  .overlay{
+    display:none; position:fixed; inset:0; background:rgba(6,10,16,0.72);
+    align-items:center; justify-content:center; padding:20px; z-index:50;
+  }
+  .modal{
+    width:100%; max-width:420px; padding:28px; max-height:85vh; overflow:auto;
+  }
+  .modal-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
+  .modal-head h2{ margin:0; font-size:19px; }
+  .stats-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:18px; }
+  .stat-box{ background:var(--panel-2); border:1px solid var(--line); border-radius:12px; padding:14px; }
+  .stat-box .label{ font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;}
+  .stat-box .value{ font-family:'JetBrains Mono',monospace; font-weight:700; font-size:20px; }
+  .btn-reset{
+    width:100%; padding:12px; border-radius:10px; background:transparent; border:1px solid var(--false);
+    color:var(--false); font-size:13.5px;
+  }
+  .btn-reset:hover{ background: rgba(255,111,142,0.1); }
+
+  /* confetti */
+  .confetti-piece{
+    position:fixed; top:-10px; width:8px;height:14px; z-index:100; pointer-events:none;
+    animation: fall linear forwards;
+  }
+  @keyframes fall{ to{ transform: translateY(110vh) rotate(540deg); opacity:0.3; } }
+
+  @media (max-width:480px){
+    .stat-group{ gap:12px; }
+    .expr-card{ padding:30px 16px; }
+  }
+</style>
 </head>
 <body>
 
-<div class="container">
-  <h1>⚡ Boolean Hero</h1>
-
-  <!-- Start Screen -->
-  <div id="start-screen">
-    <div class="form-group">
-      <label for="initial-score">Starting Score / Rating</label>
-      <input type="number" id="initial-score" value="100" min="1">
-    </div>
-    <button class="btn btn-action" onclick="startGame()">Start Practice</button>
+  <!-- SETUP SCREEN -->
+  <div id="setupScreen" class="card">
+    <div class="logo-mark display">λ</div>
+    <h1 class="title display">Boolean Blitz</h1>
+    <p class="subtitle">Solve TRUE / FALSE logic puzzles built from AND, OR and NOT. Your rating sets the difficulty — climb it by getting problems right.</p>
+    <label class="field-label" for="ratingInput">Starting rating</label>
+    <input type="number" id="ratingInput" value="100" step="10" min="0">
+    <p class="hint">Every 100 rating points unlocks one extra layer of logic. Incorrect answers subtract 5 rating points and return for review later.</p>
+    <button class="btn btn-primary" id="startBtn">Start training →</button>
   </div>
 
-  <!-- Game Screen -->
-  <div id="game-screen" class="hidden">
-    <div class="dashboard">
-      <div class="stat-card">
-        <div class="stat-label">Score</div>
-        <div class="stat-val" id="score-val">100</div>
+  <!-- GAME SCREEN -->
+  <div id="gameScreen">
+    <div class="topbar">
+      <div class="brand">
+        <span class="dot"></span>
+        <span class="brand-name display">Boolean Blitz</span>
       </div>
-      <div class="stat-card">
-        <div class="stat-label">Level</div>
-        <div class="stat-val" id="level-val">1</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Accuracy</div>
-        <div class="stat-val" id="accuracy-val">100%</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Avg Time</div>
-        <div class="stat-val" id="avg-time-val">0.0s</div>
-      </div>
-    </div>
-
-    <div class="diff-group">
-      <span style="font-size: 0.9rem; color: var(--text-muted);">Difficulty Modifier:</span>
-      <div class="diff-selector">
-        <button class="diff-btn" onclick="setDiff(-3)">-3</button>
-        <button class="diff-btn" onclick="setDiff(-2)">-2</button>
-        <button class="diff-btn" onclick="setDiff(-1)">-1</button>
-        <button class="diff-btn active" onclick="setDiff(0)">0</button>
-        <button class="diff-btn" onclick="setDiff(1)">+1</button>
-        <button class="diff-btn" onclick="setDiff(2)">+2</button>
-        <button class="diff-btn" onclick="setDiff(3)">+3</button>
+      <div class="stat-group">
+        <div class="stat">
+          <div class="label">Rating</div>
+          <div class="value" id="ratingValue">100</div>
+        </div>
+        <div class="stat">
+          <div class="label">Streak</div>
+          <div class="value" id="streakValue">0</div>
+        </div>
+        <div class="icon-btn" id="statsBtn" title="View stats">📊</div>
       </div>
     </div>
 
-    <div class="problem-box">
-      <div id="expression-display" class="expression"></div>
+    <div class="difficulty-row">
+      <span class="dr-label">Difficulty modifier</span>
+      <div class="chip" data-mod="-3">-3</div>
+      <div class="chip" data-mod="-2">-2</div>
+      <div class="chip" data-mod="-1">-1</div>
+      <div class="chip active" data-mod="0">0</div>
+      <div class="chip" data-mod="1">+1</div>
+      <div class="chip" data-mod="2">+2</div>
+      <div class="chip" data-mod="3">+3</div>
+      <span class="level-badge">Layers: <b id="levelValue">1</b></span>
     </div>
 
-    <div id="answer-controls" class="controls">
-      <button class="btn btn-true" onclick="handleAnswer(true)">TRUE</button>
-      <button class="btn btn-false" onclick="handleAnswer(false)">FALSE</button>
+    <div class="review-banner" id="reviewBanner">⚡ Review Mode: Re-testing a past mistake</div>
+
+    <div class="expr-card">
+      <div class="expr-text mono" id="exprText">TRUE</div>
     </div>
 
-    <div id="feedback-box" class="hidden">
-      <div id="solution-details" class="solution-box"></div>
-      <button class="btn btn-action" onclick="nextProblem()">Next Problem</button>
+    <div class="answer-row">
+      <button class="btn answer-btn true-btn" id="trueBtn">✓ TRUE</button>
+      <button class="btn answer-btn false-btn" id="falseBtn">✕ FALSE</button>
+    </div>
+
+    <div class="feedback-card card" id="feedbackCard">
+      <div class="feedback-head">
+        <span class="badge" id="feedbackBadge">Correct!</span>
+      </div>
+      <div class="feedback-sub" id="feedbackSub"></div>
+      <div class="steps" id="stepsBox"></div>
+      <button class="btn btn-next" id="nextBtn">Next problem →</button>
     </div>
   </div>
-</div>
+
+  <!-- STATS MODAL -->
+  <div class="overlay" id="statsOverlay">
+    <div class="modal card">
+      <div class="modal-head">
+        <h2 class="display">Your stats</h2>
+        <div class="icon-btn" id="closeStatsBtn">✕</div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-box"><div class="label">Solved</div><div class="value" id="statSolved">0</div></div>
+        <div class="stat-box"><div class="label">Accuracy</div><div class="value" id="statAccuracy">0%</div></div>
+        <div class="stat-box"><div class="label">Avg time / problem</div><div class="value" id="statAvgTime">0.0s</div></div>
+        <div class="stat-box"><div class="label">Best streak</div><div class="value" id="statBestStreak">0</div></div>
+        <div class="stat-box"><div class="label">Correct</div><div class="value" id="statCorrect">0</div></div>
+        <div class="stat-box"><div class="label">Wrong</div><div class="value" id="statWrong">0</div></div>
+      </div>
+      <button class="btn-reset" id="resetStatsBtn">Reset stats</button>
+    </div>
+  </div>
 
 <script>
-  // State
-  let score = 100;
-  let diffModifier = 0;
-  let currentProblem = null;
-  let startTime = 0;
-  let stats = { total: 0, correct: 0, totalTime: 0 };
+(function(){
+  "use strict";
 
-  // Load persistent stats
-  if (localStorage.getItem('booleanStats')) {
-    stats = JSON.parse(localStorage.getItem('booleanStats'));
+  var STORAGE_KEY = "boolBlitz_stats_v1";
+  var LAST_RATING_KEY = "boolBlitz_lastRating_v1";
+  var REVIEW_QUEUE_KEY = "boolBlitz_reviewQueue_v1";
+  var MAX_LEVEL = 10;
+  var REVIEW_INTERVAL = 3; // Serve a review question after every 3 standard problems
+
+  // ---------- Persistent stats ----------
+  function loadStats(){
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if(raw) return JSON.parse(raw);
+    }catch(e){}
+    return { totalAnswered:0, totalCorrect:0, totalWrong:0, totalTimeMs:0, bestStreak:0, history:[] };
   }
-
-  function startGame() {
-    score = parseInt(document.getElementById('initial-score').value) || 100;
-    document.getElementById('start-screen').classList.add('hidden');
-    document.getElementById('game-screen').classList.remove('hidden');
-    updateDashboard();
-    nextProblem();
+  function saveStats(s){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }catch(e){}
   }
+  var stats = loadStats();
 
-  function setDiff(mod) {
-    diffModifier = mod;
-    document.querySelectorAll('.diff-btn').forEach(btn => {
-      btn.classList.toggle('active', parseInt(btn.innerText) === mod);
-    });
-    nextProblem();
+  // ---------- Review Queue ----------
+  function loadReviewQueue(){
+    try{
+      var raw = localStorage.getItem(REVIEW_QUEUE_KEY);
+      if(raw) return JSON.parse(raw);
+    }catch(e){}
+    return [];
   }
-
-  // Abstract Syntax Tree Nodes
-  class ValueNode {
-    constructor(val) { this.type = 'val'; this.val = val; }
-    evaluate() { return { val: this.val, str: this.val ? 'TRUE' : 'FALSE' }; }
+  function saveReviewQueue(q){
+    try{ localStorage.setItem(REVIEW_QUEUE_KEY, JSON.stringify(q)); }catch(e){}
   }
+  var reviewQueue = loadReviewQueue();
 
-  class UnaryNode {
-    constructor(child) { this.type = 'unary'; this.op = 'NOT'; this.child = child; }
-    evaluate() {
-      const childRes = this.child.evaluate();
-      return { val: !childRes.val, str: `NOT ${childRes.val ? 'TRUE' : 'FALSE'}` };
-    }
-  }
+  // ---------- App state ----------
+  var rating = 100;
+  var streak = 0;
+  var modifier = 0;
+  var currentTree = null;
+  var currentAnswer = null;
+  var problemStartTime = 0;
+  var awaitingNext = false;
+  var standardProblemsSolved = 0;
+  var isReviewProblem = false;
+  var activeReviewIndex = -1;
 
-  class BinaryNode {
-    constructor(left, op, right) { this.type = 'binary'; this.left = left; this.op = op; this.right = right; }
-    evaluate() {
-      const l = this.left.evaluate();
-      const r = this.right.evaluate();
-      const val = this.op === 'AND' ? (l.val && r.val) : (l.val || r.val);
-      return { val, str: `(${l.val ? 'TRUE' : 'FALSE'} ${this.op} ${r.val ? 'TRUE' : 'FALSE'})` };
-    }
-  }
+  // ---------- Elements ----------
+  var el = {
+    setupScreen: document.getElementById('setupScreen'),
+    gameScreen: document.getElementById('gameScreen'),
+    ratingInput: document.getElementById('ratingInput'),
+    startBtn: document.getElementById('startBtn'),
+    ratingValue: document.getElementById('ratingValue'),
+    streakValue: document.getElementById('streakValue'),
+    levelValue: document.getElementById('levelValue'),
+    exprText: document.getElementById('exprText'),
+    trueBtn: document.getElementById('trueBtn'),
+    falseBtn: document.getElementById('falseBtn'),
+    feedbackCard: document.getElementById('feedbackCard'),
+    feedbackBadge: document.getElementById('feedbackBadge'),
+    feedbackSub: document.getElementById('feedbackSub'),
+    stepsBox: document.getElementById('stepsBox'),
+    nextBtn: document.getElementById('nextBtn'),
+    statsBtn: document.getElementById('statsBtn'),
+    statsOverlay: document.getElementById('statsOverlay'),
+    closeStatsBtn: document.getElementById('closeStatsBtn'),
+    resetStatsBtn: document.getElementById('resetStatsBtn'),
+    reviewBanner: document.getElementById('reviewBanner'),
+    chips: Array.prototype.slice.call(document.querySelectorAll('.chip'))
+  };
 
-  // Generator Algorithm
-  function generateAST(expansions) {
-    let tree = new ValueNode(null);
+  try{
+    var lastRating = localStorage.getItem(LAST_RATING_KEY);
+    if(lastRating) el.ratingInput.value = lastRating;
+  }catch(e){}
 
-    function getRandomLeaf(node) {
-      if (node.type === 'val') return node;
-      if (node.type === 'unary') return getRandomLeaf(node.child);
-      return Math.random() < 0.5 ? getRandomLeaf(node.left) : getRandomLeaf(node.right);
-    }
+  // ---------- Expression generation ----------
+  function randInt(n){ return Math.floor(Math.random()*n); }
 
-    function replaceNode(root, target, replacement) {
-      if (root === target) return replacement;
-      if (root.type === 'unary') {
-        root.child = replaceNode(root.child, target, replacement);
-      } else if (root.type === 'binary') {
-        root.left = replaceNode(root.left, target, replacement);
-        root.right = replaceNode(root.right, target, replacement);
-      }
-      return root;
-    }
-
-    for (let i = 0; i < expansions; i++) {
-      const target = getRandomLeaf(tree);
-      let replacement;
-      if (Math.random() < 1/3) {
-        replacement = new UnaryNode(new ValueNode(null));
+  function generateTree(level){
+    var root = { type:'leaf' };
+    var leaves = [root];
+    for(var i=0;i<level;i++){
+      var idx = randInt(leaves.length);
+      var node = leaves[idx];
+      leaves.splice(idx,1);
+      if(Math.random() < 1/3){
+        node.type = 'not';
+        node.child = { type:'leaf' };
+        leaves.push(node.child);
       } else {
-        const op = Math.random() < 0.5 ? 'AND' : 'OR';
-        replacement = new BinaryNode(new ValueNode(null), op, new ValueNode(null));
-      }
-      tree = replaceNode(tree, target, replacement);
-    }
-
-    function fillValues(node) {
-      if (node.type === 'val') {
-        node.val = Math.random() < 0.5;
-      } else if (node.type === 'unary') {
-        fillValues(node.child);
-      } else if (node.type === 'binary') {
-        fillValues(node.left);
-        fillValues(node.right);
+        node.type = 'bin';
+        node.op = Math.random() < 0.5 ? 'AND' : 'OR';
+        node.left = { type:'leaf' };
+        node.right = { type:'leaf' };
+        leaves.push(node.left, node.right);
       }
     }
-
-    fillValues(tree);
-    return tree;
+    leaves.forEach(function(l){ l.value = Math.random() < 0.5; });
+    return root;
   }
 
-  function stringifyAST(node) {
-    if (node.type === 'val') return node.val ? 'TRUE' : 'FALSE';
-    if (node.type === 'unary') return `NOT ${stringifyAST(node.child)}`;
-    if (node.type === 'binary') return `(${stringifyAST(node.left)} ${node.op} ${stringifyAST(node.right)})`;
+  function evalTree(node){
+    if(node.type === 'leaf') return node.value;
+    if(node.type === 'not') return !evalTree(node.child);
+    if(node.op === 'AND') return evalTree(node.left) && evalTree(node.right);
+    return evalTree(node.left) || evalTree(node.right);
   }
 
-  function getStepByStepSolution(node) {
-    const steps = [];
-    
-    function reduce(curr) {
-      if (curr.type === 'val') return { node: curr, changed: false };
+  function litHtml(v){
+    return '<span class="lit ' + (v ? 'lit-true' : 'lit-false') + '">' + (v ? 'TRUE' : 'FALSE') + '</span>';
+  }
 
-      if (curr.type === 'unary') {
-        if (curr.child.type === 'val') {
-          return { node: new ValueNode(!curr.child.val), changed: true };
-        }
-        const inner = reduce(curr.child);
-        return { node: new UnaryNode(inner.node), changed: inner.changed };
-      }
-
-      if (curr.type === 'binary') {
-        if (curr.left.type === 'val' && curr.right.type === 'val') {
-          const res = curr.op === 'AND' ? (curr.left.val && curr.right.val) : (curr.left.val || curr.right.val);
-          return { node: new ValueNode(res), changed: true };
-        }
-        if (curr.left.type !== 'val') {
-          const inner = reduce(curr.left);
-          return { node: new BinaryNode(inner.node, curr.op, curr.right), changed: inner.changed };
-        }
-        const inner = reduce(curr.right);
-        return { node: new BinaryNode(curr.left, curr.op, inner.node), changed: inner.changed };
-      }
+  function renderNode(node, isRoot){
+    if(node.type === 'leaf') return litHtml(node.value);
+    if(node.type === 'not'){
+      var childStr = node.child.type === 'bin' ? '(' + renderNode(node.child) + ')' : renderNode(node.child);
+      return '<span class="op-not">NOT</span> ' + childStr;
     }
+    var inner = renderNode(node.left) + ' <span class="op">' + node.op + '</span> ' + renderNode(node.right);
+    return isRoot ? inner : '(' + inner + ')';
+  }
 
-    let currentTree = node;
-    steps.push(stringifyAST(currentTree));
+  // ---------- Step-by-step solution ----------
+  function bstr(v){ return v ? 'TRUE' : 'FALSE'; }
 
-    while (currentTree.type !== 'val') {
-      const stepResult = reduce(currentTree);
-      currentTree = stepResult.node;
-      steps.push(stringifyAST(currentTree));
+  function findReducible(node){
+    if(node.type === 'leaf') return null;
+    if(node.type === 'not'){
+      var r = findReducible(node.child);
+      if(r) return r;
+      if(node.child.type === 'leaf') return node;
+      return null;
     }
+    var r2 = findReducible(node.left);
+    if(r2) return r2;
+    r2 = findReducible(node.right);
+    if(r2) return r2;
+    if(node.left.type === 'leaf' && node.right.type === 'leaf') return node;
+    return null;
+  }
 
+  function buildSteps(tree){
+    var work = JSON.parse(JSON.stringify(tree));
+    var steps = [];
+    while(work.type !== 'leaf'){
+      var target = findReducible(work);
+      if(!target) break;
+      var desc;
+      if(target.type === 'not'){
+        var v = !target.child.value;
+        desc = 'NOT ' + bstr(target.child.value) + ' = ' + bstr(v);
+        target.type = 'leaf'; target.value = v;
+        delete target.child;
+      } else {
+        var v2 = target.op === 'AND' ? (target.left.value && target.right.value) : (target.left.value || target.right.value);
+        desc = bstr(target.left.value) + ' ' + target.op + ' ' + bstr(target.right.value) + ' = ' + bstr(v2);
+        target.type = 'leaf'; target.value = v2;
+        delete target.left; delete target.right; delete target.op;
+      }
+      steps.push({ desc: desc, exprHtml: renderNode(work, true) });
+    }
     return steps;
   }
 
-  function calculateResult(node) {
-    if (node.type === 'val') return node.val;
-    if (node.type === 'unary') return !calculateResult(node.child);
-    if (node.type === 'binary') {
-      const l = calculateResult(node.left);
-      const r = calculateResult(node.right);
-      return node.op === 'AND' ? (l && r) : (l || r);
-    }
+  // ---------- Difficulty ----------
+  function computeLevel(){
+    var base = Math.floor(rating / 100);
+    var level = base + modifier;
+    level = Math.max(1, level);
+    level = Math.min(MAX_LEVEL, level);
+    return level;
   }
 
-  function nextProblem() {
-    document.getElementById('feedback-box').classList.add('hidden');
-    document.getElementById('answer-controls').classList.remove('hidden');
-
-    const calculatedLevel = Math.floor(score / 100);
-    const expansions = Math.max(1, calculatedLevel + diffModifier);
-    
-    const ast = generateAST(expansions);
-    const textExp = stringifyAST(ast);
-    const answer = calculateResult(ast);
-    const steps = getStepByStepSolution(ast);
-
-    currentProblem = { ast, answer, steps };
-    
-    // Style expression display
-    let formattedText = textExp
-      .replace(/TRUE/g, '<span class="value-true">TRUE</span>')
-      .replace(/FALSE/g, '<span class="value-false">FALSE</span>')
-      .replace(/AND|OR|NOT/g, match => `<span class="operator">${match}</span>`);
-
-    document.getElementById('expression-display').innerHTML = formattedText;
-    startTime = Date.now();
+  function refreshLevelBadge(){
+    el.levelValue.textContent = computeLevel();
   }
 
-  function handleAnswer(userChoice) {
-    const elapsedSecs = (Date.now() - startTime) / 1000;
-    stats.total++;
-    stats.totalTime += elapsedSecs;
+  // ---------- Game flow ----------
+  function newProblem(){
+    awaitingNext = false;
+    el.feedbackCard.style.display = 'none';
+    el.trueBtn.disabled = false;
+    el.falseBtn.disabled = false;
 
-    const isCorrect = userChoice === currentProblem.answer;
-
-    if (isCorrect) {
-      score += 1;
-      stats.correct++;
-      confetti({ particleCount: 80, spread: 60, origin: { y: 0.7 } });
-      updateDashboard();
-      nextProblem();
+    // Check if it's time to serve a review problem from previous mistakes
+    if(reviewQueue.length > 0 && standardProblemsSolved > 0 && standardProblemsSolved % REVIEW_INTERVAL === 0){
+      isReviewProblem = true;
+      activeReviewIndex = randInt(reviewQueue.length);
+      currentTree = reviewQueue[activeReviewIndex];
+      el.reviewBanner.style.display = 'block';
     } else {
-      score = Math.max(0, score - 2);
-      updateDashboard();
-      
-      document.getElementById('answer-controls').classList.add('hidden');
-      const solutionBox = document.getElementById('solution-details');
-      
-      let html = `<strong>Incorrect.</strong> Step-by-step resolution:<br>`;
-      currentProblem.steps.forEach((step, idx) => {
-        html += `<div class="solution-step">Step ${idx + 1}: ${step}</div>`;
-      });
-      
-      solutionBox.innerHTML = html;
-      document.getElementById('feedback-box').classList.remove('hidden');
+      isReviewProblem = false;
+      activeReviewIndex = -1;
+      el.reviewBanner.style.display = 'none';
+      var level = computeLevel();
+      currentTree = generateTree(level);
     }
 
-    localStorage.setItem('booleanStats', JSON.stringify(stats));
+    currentAnswer = evalTree(currentTree);
+    el.exprText.innerHTML = renderNode(currentTree, true);
+    problemStartTime = performance.now();
   }
 
-  function updateDashboard() {
-    document.getElementById('score-val').innerText = score;
-    document.getElementById('level-val').innerText = Math.floor(score / 100);
-    
-    const accuracy = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 100;
-    const avgTime = stats.total > 0 ? (stats.totalTime / stats.total).toFixed(1) : '0.0';
-    
-    document.getElementById('accuracy-val').innerText = `${accuracy}%`;
-    document.getElementById('avg-time-val').innerText = `${avgTime}s`;
+  function updateHeader(){
+    el.ratingValue.textContent = Math.round(rating);
+    el.streakValue.textContent = streak;
+    refreshLevelBadge();
+    try{ localStorage.setItem(LAST_RATING_KEY, String(Math.round(rating))); }catch(e){}
   }
+
+  function recordAnswer(correct, timeMs){
+    stats.totalAnswered++;
+    stats.totalTimeMs += timeMs;
+    if(correct){ stats.totalCorrect++; } else { stats.totalWrong++; }
+    stats.history.push({ correct: correct, timeMs: Math.round(timeMs), level: computeLevel(), ts: Date.now() });
+    if(stats.history.length > 500) stats.history.shift();
+    if(correct){
+      streak++;
+      if(streak > stats.bestStreak) stats.bestStreak = streak;
+    } else {
+      streak = 0;
+    }
+    saveStats(stats);
+  }
+
+  function handleAnswer(userAnswer){
+    if(awaitingNext) return;
+    awaitingNext = true;
+    el.trueBtn.disabled = true;
+    el.falseBtn.disabled = true;
+
+    var elapsed = performance.now() - problemStartTime;
+    var correct = (userAnswer === currentAnswer);
+
+    // Rating adjustment: +1 for correct, -5 penalty for wrong
+    rating = Math.max(0, rating + (correct ? 1 : -5));
+    recordAnswer(correct, elapsed);
+
+    if(!isReviewProblem){
+      standardProblemsSolved++;
+    }
+
+    // Handle review queue logic
+    if(correct){
+      if(isReviewProblem && activeReviewIndex !== -1){
+        // Remove successfully reviewed mistake from queue
+        reviewQueue.splice(activeReviewIndex, 1);
+        saveReviewQueue(reviewQueue);
+      }
+    } else {
+      // Save current tree into review queue if wrong
+      reviewQueue.push(currentTree);
+      saveReviewQueue(reviewQueue);
+    }
+
+    updateHeader();
+
+    el.feedbackCard.style.display = 'block';
+    if(correct){
+      el.feedbackBadge.className = 'badge correct';
+      el.feedbackBadge.textContent = '✓ Correct!';
+      var subText = 'Nice work — the expression evaluates to ' + bstr(currentAnswer) + '. Rating +1.';
+      if(isReviewProblem) subText += ' Mistake cleared from review queue!';
+      el.feedbackSub.textContent = subText;
+      el.stepsBox.innerHTML = '';
+      spawnConfetti();
+      playTone(correct);
+    } else {
+      el.feedbackBadge.className = 'badge incorrect';
+      el.feedbackBadge.textContent = '✕ Not quite';
+      el.feedbackSub.textContent = 'The correct answer was ' + bstr(currentAnswer) + '. Rating −5. Saved for future review! Here\'s how to solve it:';
+      renderSteps();
+      playTone(correct);
+    }
+  }
+
+  function renderSteps(){
+    var steps = buildSteps(currentTree);
+    var html = '';
+    steps.forEach(function(s, i){
+      html += '<div class="step-row">' +
+        '<span class="step-idx">' + (i+1) + '.</span>' +
+        '<span class="step-calc">' + s.desc + '</span>' +
+        '<span class="step-arrow">→</span>' +
+        '<span class="mono">' + s.exprHtml + '</span>' +
+        '</div>';
+    });
+    el.stepsBox.innerHTML = html;
+  }
+
+  // ---------- Confetti ----------
+  function spawnConfetti(){
+    var colors = ['#57e6a1', '#7c9bff', '#b98cff', '#ffcc66', '#ff6f8e'];
+    for(var i=0;i<36;i++){
+      var piece = document.createElement('div');
+      piece.className = 'confetti-piece';
+      piece.style.left = (Math.random()*100) + 'vw';
+      piece.style.background = colors[randInt(colors.length)];
+      piece.style.animationDuration = (1.4 + Math.random()*1.2) + 's';
+      piece.style.opacity = String(0.7 + Math.random()*0.3);
+      piece.style.transform = 'rotate(' + randInt(360) + 'deg)';
+      document.body.appendChild(piece);
+      (function(p){ setTimeout(function(){ p.remove(); }, 3000); })(piece);
+    }
+  }
+
+  // ---------- Sound (tiny synth, no assets) ----------
+  var audioCtx = null;
+  function playTone(correct){
+    try{
+      if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      var now = audioCtx.currentTime;
+      var freqs = correct ? [660, 880] : [220, 160];
+      freqs.forEach(function(f, i){
+        var osc = audioCtx.createOscillator();
+        var gain = audioCtx.createGain();
+        osc.type = correct ? 'triangle' : 'sawtooth';
+        osc.frequency.value = f;
+        gain.gain.setValueAtTime(0.0001, now + i*0.09);
+        gain.gain.linearRampToValueAtTime(0.08, now + i*0.09 + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + i*0.09 + 0.25);
+        osc.connect(gain).connect(audioCtx.destination);
+        osc.start(now + i*0.09);
+        osc.stop(now + i*0.09 + 0.28);
+      });
+    }catch(e){ /* audio not available, ignore */ }
+  }
+
+  // ---------- Stats modal ----------
+  function openStats(){
+    var acc = stats.totalAnswered ? Math.round(100 * stats.totalCorrect / stats.totalAnswered) : 0;
+    var avg = stats.totalAnswered ? (stats.totalTimeMs / stats.totalAnswered / 1000) : 0;
+    document.getElementById('statSolved').textContent = stats.totalAnswered;
+    document.getElementById('statAccuracy').textContent = acc + '%';
+    document.getElementById('statAvgTime').textContent = avg.toFixed(1) + 's';
+    document.getElementById('statBestStreak').textContent = stats.bestStreak;
+    document.getElementById('statCorrect').textContent = stats.totalCorrect;
+    document.getElementById('statWrong').textContent = stats.totalWrong;
+    el.statsOverlay.style.display = 'flex';
+  }
+  function closeStats(){ el.statsOverlay.style.display = 'none'; }
+
+  // ---------- Event wiring ----------
+  el.startBtn.addEventListener('click', function(){
+    var v = parseInt(el.ratingInput.value, 10);
+    if(isNaN(v) || v < 0) v = 100;
+    rating = v;
+    streak = 0;
+    standardProblemsSolved = 0;
+    el.setupScreen.style.display = 'none';
+    el.gameScreen.style.display = 'flex';
+    updateHeader();
+    newProblem();
+  });
+
+  el.trueBtn.addEventListener('click', function(){ handleAnswer(true); });
+  el.falseBtn.addEventListener('click', function(){ handleAnswer(false); });
+  el.nextBtn.addEventListener('click', function(){ updateHeader(); newProblem(); });
+
+  el.chips.forEach(function(chip){
+    chip.addEventListener('click', function(){
+      el.chips.forEach(function(c){ c.classList.remove('active'); });
+      chip.classList.add('active');
+      modifier = parseInt(chip.getAttribute('data-mod'), 10);
+      refreshLevelBadge();
+    });
+  });
+
+  el.statsBtn.addEventListener('click', openStats);
+  el.closeStatsBtn.addEventListener('click', closeStats);
+  el.statsOverlay.addEventListener('click', function(e){ if(e.target === el.statsOverlay) closeStats(); });
+  el.resetStatsBtn.addEventListener('click', function(){
+    stats = { totalAnswered:0, totalCorrect:0, totalWrong:0, totalTimeMs:0, bestStreak:0, history:[] };
+    reviewQueue = [];
+    saveStats(stats);
+    saveReviewQueue(reviewQueue);
+    openStats();
+  });
+
+})();
 </script>
 </body>
 </html>
