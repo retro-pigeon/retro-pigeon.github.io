@@ -669,7 +669,7 @@
     var elapsed = performance.now() - problemStartTime;
     var correct = !isTimeout && (userAnswer === currentAnswer);
 
-    rating = Math.max(0, rating + (correct ? 1 : -5));
+    rating = Math.max(0, rating + (correct ? 1 : -2));
     recordAnswer(correct, elapsed);
 
     if(!isReviewProblem){
