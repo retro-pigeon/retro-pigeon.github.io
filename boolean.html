@@ -400,8 +400,9 @@
   var isReviewProblem = false;
   var activeReviewIndex = -1;
 
-  // Timer State
+  // Timers
   var timerInterval = null;
+  var feedbackTimerInterval = null;
   var allowedTimeSec = 5;
   var currentDepth = 1;
 
@@ -547,9 +548,15 @@
     }
   }
 
+  function stopFeedbackTimer(){
+    if(feedbackTimerInterval){
+      clearInterval(feedbackTimerInterval);
+      feedbackTimerInterval = null;
+    }
+  }
+
   function startTimer(){
     stopTimer();
-    // Time limit: 5^depth seconds
     allowedTimeSec = Math.pow(5, currentDepth);
     
     var remaining = allowedTimeSec;
@@ -562,7 +569,7 @@
         remaining = 0;
         updateTimerUI(0, allowedTimeSec);
         stopTimer();
-        handleAnswer(null, true); // Timeout triggered
+        handleAnswer(null, true);
       } else {
         updateTimerUI(remaining, allowedTimeSec);
       }
@@ -582,12 +589,31 @@
     }
   }
 
+  function startFeedbackTimerCap(){
+    stopFeedbackTimer();
+    var secondsLeft = 5;
+    el.nextBtn.textContent = 'Next problem (' + secondsLeft + 's)... →';
+
+    feedbackTimerInterval = setInterval(function(){
+      secondsLeft--;
+      if(secondsLeft <= 0){
+        stopFeedbackTimer();
+        updateHeader();
+        newProblem();
+      } else {
+        el.nextBtn.textContent = 'Next problem (' + secondsLeft + 's)... →';
+      }
+    }, 1000);
+  }
+
   // ---------- Game flow ----------
   function newProblem(){
+    stopFeedbackTimer();
     awaitingNext = false;
     el.feedbackCard.style.display = 'none';
     el.trueBtn.disabled = false;
     el.falseBtn.disabled = false;
+    el.nextBtn.textContent = 'Next problem →';
 
     currentDepth = computeLevel();
 
@@ -642,7 +668,6 @@
     var elapsed = performance.now() - problemStartTime;
     var correct = !isTimeout && (userAnswer === currentAnswer);
 
-    // Rating adjustment: +1 for correct, -5 penalty for wrong or timeout
     rating = Math.max(0, rating + (correct ? 1 : -5));
     recordAnswer(correct, elapsed);
 
@@ -664,6 +689,7 @@
 
     el.feedbackCard.style.display = 'block';
     if(correct){
+      el.nextBtn.textContent = 'Next problem →';
       el.feedbackBadge.className = 'badge correct';
       el.feedbackBadge.textContent = '✓ Correct!';
       var subText = 'Nice work — the expression evaluates to ' + bstr(currentAnswer) + '. Rating +1.';
@@ -678,9 +704,12 @@
       var reasonText = isTimeout 
         ? 'You ran out of time (' + allowedTimeSec + 's limit). Rating −5.' 
         : 'The correct answer was ' + bstr(currentAnswer) + '. Rating −5.';
-      el.feedbackSub.textContent = reasonText + ' Saved for future review! Solution:';
+      el.feedbackSub.textContent = reasonText + ' Solution:';
       renderSteps();
       playTone(false);
+      
+      // Auto-advance after 5 seconds cap on mistakes
+      startFeedbackTimerCap();
     }
   }
 
@@ -714,7 +743,7 @@
     }
   }
 
-  // ---------- Sound (tiny synth, no assets) ----------
+  // ---------- Sound ----------
   var audioCtx = null;
   function playTone(correct){
     try{
@@ -733,7 +762,7 @@
         osc.start(now + i*0.09);
         osc.stop(now + i*0.09 + 0.28);
       });
-    }catch(e){ /* audio not available, ignore */ }
+    }catch(e){ }
   }
 
   // ---------- Stats modal ----------
