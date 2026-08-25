@@ -266,7 +266,7 @@
     <p class="subtitle">Solve TRUE / FALSE logic puzzles built from AND, OR and NOT. Your rating sets the difficulty — climb it by getting problems right.</p>
     <label class="field-label" for="ratingInput">Starting rating</label>
     <input type="number" id="ratingInput" value="100" step="10" min="0">
-    <p class="hint">Every 100 rating points unlocks one extra layer of logic. You must solve each problem within 5<sup>depth</sup> seconds or take a 5-point penalty.</p>
+    <p class="hint">Every 100 rating points unlocks one extra layer of logic. Solve each problem within 5 × depth<sup>1.5</sup> seconds or take a 5-point penalty.</p>
     <button class="btn btn-primary" id="startBtn">Start training →</button>
   </div>
 
@@ -557,7 +557,8 @@
 
   function startTimer(){
     stopTimer();
-    allowedTimeSec = Math.pow(5, currentDepth);
+    // New Formula: 5 * (depth ^ 1.5)
+    allowedTimeSec = Math.round((5 * Math.pow(currentDepth, 1.5)) * 10) / 10;
     
     var remaining = allowedTimeSec;
     updateTimerUI(remaining, allowedTimeSec);
@@ -708,7 +709,6 @@
       renderSteps();
       playTone(false);
       
-      // Auto-advance after 5 seconds cap on mistakes
       startFeedbackTimerCap();
     }
   }
