@@ -174,12 +174,63 @@
     let startTime = 0;
     let missedProblems = [];
 
+    // --- Web Audio Synthesizer ---
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new AudioCtx();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playTone(freq, type, duration, delay = 0) {
+      if (!audioCtx) return;
+      setTimeout(() => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      }, delay);
+    }
+
+    function playSoundCorrect() {
+      initAudio();
+      // Happy two-tone chime (E5 -> A5)
+      playTone(659.25, 'sine', 0.15, 0);
+      playTone(880.00, 'sine', 0.3, 100);
+    }
+
+    function playSoundWrong() {
+      initAudio();
+      // Low buzz sound
+      playTone(150, 'sawtooth', 0.35, 0);
+    }
+
+    function playSoundClick() {
+      initAudio();
+      // Soft pop sound
+      playTone(400, 'sine', 0.05, 0);
+    }
+
+    // --- Game Logic ---
     function getRandomInt(min, max) {
       return Math.floor(Math.random() * (max - min + 1)) + min;
     }
 
     function generateProblem() {
-      // 1/3 chance to review a previously missed problem if available
       if (missedProblems.length > 0 && Math.random() < (1 / 3)) {
         const index = getRandomInt(0, missedProblems.length - 1);
         const problem = missedProblems[index];
@@ -196,17 +247,14 @@
       const options = new Set([correct]);
       
       while (options.size < 4) {
-        // Generate distractor within +-10 of the correct answer
         let offset = getRandomInt(-10, 10);
         let distractor = correct + offset;
         
-        // Ensure strictly positive and non-duplicate answers
         if (distractor > 0 && distractor !== correct) {
           options.add(distractor);
         }
       }
 
-      // Convert set to array and shuffle
       return Array.from(options).sort(() => Math.random() - 0.5);
     }
 
@@ -263,6 +311,8 @@
 
     function selectAnswer(index) {
       clearInterval(timerId);
+      playSoundClick();
+
       const buttons = document.querySelectorAll('.btn-option');
       const selectedValue = parseInt(buttons[index].dataset.val, 10);
 
@@ -270,12 +320,12 @@
         score += 1;
         document.getElementById('score').textContent = score;
         
-        // Remove from missed list if answered correctly later
         missedProblems = missedProblems.filter(
           p => !(p.f1 === currentFactor1 && p.f2 === currentFactor2) &&
                !(p.f1 === currentFactor2 && p.f2 === currentFactor1)
         );
 
+        playSoundCorrect();
         triggerConfetti();
         renderQuestion();
       } else {
@@ -284,10 +334,10 @@
     }
 
     function handleWrongAnswer() {
+      playSoundWrong();
       score -= 5;
       document.getElementById('score').textContent = score;
 
-      // Track missed problem
       const exists = missedProblems.some(
         p => (p.f1 === currentFactor1 && p.f2 === currentFactor2)
       );
@@ -295,12 +345,12 @@
         missedProblems.push({ f1: currentFactor1, f2: currentFactor2 });
       }
 
-      // Show feedback screen
       document.getElementById('solution-display').textContent = `${currentFactor1} × ${currentFactor2} = ${correctAnswer}`;
       document.getElementById('feedback-screen').classList.remove('hidden');
     }
 
     function resumeGame() {
+      playSoundClick();
       document.getElementById('feedback-screen').classList.add('hidden');
       renderQuestion();
     }
