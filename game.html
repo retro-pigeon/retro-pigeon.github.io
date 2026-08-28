@@ -29,6 +29,11 @@
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{height:100%;}
+  .example, .timer-num, .code-lines, .answer-display, .trace-table, .final-line .ans{
+    font-variant-ligatures:none;
+    -webkit-font-feature-settings:"liga" 0,"calt" 0,"dlig" 0;
+    font-feature-settings:"liga" 0,"calt" 0,"dlig" 0;
+  }
   body{
     margin:0;
     min-height:100vh;
@@ -113,6 +118,24 @@
     transition:transform .15s ease;
   }
   .btn-primary:active{transform:scale(.96);}
+  .resume-note{
+    font-size:12.5px; color:var(--violet-soft); background:rgba(169,112,255,.1); border:1px solid var(--line);
+    border-radius:999px; padding:7px 14px; display:inline-block; margin:-6px auto 18px;
+  }
+  .rating-picker{margin:0 auto 22px; display:flex; flex-direction:column; align-items:center; gap:8px;}
+  .rating-picker label{font-size:11.5px; letter-spacing:1px; color:var(--text-2); text-transform:uppercase;}
+  .rating-stepper{display:flex; align-items:center; gap:0; background:var(--surface-800); border:1px solid var(--line); border-radius:999px; padding:4px;}
+  .rating-stepper button{
+    touch-action:manipulation; width:38px; height:38px; border-radius:50%; border:none; cursor:pointer;
+    background:var(--surface-700); color:var(--text-0); font-size:19px; font-family:'Fredoka'; line-height:1;
+  }
+  .rating-stepper button:active{transform:scale(.92);}
+  .rating-stepper input{
+    width:76px; text-align:center; background:transparent; border:none; color:var(--text-0);
+    font-family:'Fredoka'; font-weight:600; font-size:19px; -moz-appearance:textfield;
+  }
+  .rating-stepper input::-webkit-outer-spin-button, .rating-stepper input::-webkit-inner-spin-button{-webkit-appearance:none; margin:0;}
+  .rating-stepper input:focus{outline:none;}
 
   /* ---------- CODE PANEL ---------- */
   .case-header{display:flex; align-items:center; justify-content:space-between; padding:0 2px;}
@@ -136,6 +159,7 @@
   .code-line{display:flex; gap:14px; padding:1px 18px; border-left:3px solid transparent; transition:.25s;}
   .code-line .ln{color:#5b4a86; user-select:none; min-width:16px; text-align:right;}
   .code-line.active{border-left-color:var(--amber); background:rgba(255,207,92,.08);}
+  .code-line.indent{padding-left:46px;}
   .kw{color:var(--pink);} .var{color:var(--violet-soft); font-weight:700;} .num{color:var(--amber);} .op{color:var(--text-2);}
   .val-bubble{
     margin-left:auto; font-size:12px; background:var(--surface-700); color:var(--amber); border-radius:8px;
@@ -202,8 +226,13 @@
   .trace-table tr.show{opacity:1; transform:translateY(0);}
   .trace-table td{padding:8px 8px; border-bottom:1px dashed var(--line);}
   .trace-table td.code{color:var(--text-1);}
+  .trace-table td.code.indent{padding-left:26px;}
   .trace-table td.val{color:var(--amber); font-weight:700; text-align:right; white-space:nowrap;}
   .trace-table tr.active td{background:rgba(255,207,92,.08);}
+  .trace-table td.val .bool-true{color:#6ee7b7;}
+  .trace-table td.val .bool-false{color:var(--red);}
+  .trace-table td.val .skip-label{color:var(--text-2); font-style:italic; font-weight:500; font-size:11.5px;}
+  .trace-table tr.skipped td.code{opacity:.55; text-decoration:line-through; text-decoration-color:rgba(255,255,255,.25);}
   .final-line{
     margin-top:16px; display:flex; align-items:center; justify-content:space-between;
     background:var(--surface-800); border:1px solid var(--line); border-radius:12px; padding:12px 16px;
@@ -271,8 +300,17 @@
           </svg>
         </div>
         <h1>Crack the case, one variable at a time</h1>
-        <p>Every case is a tiny bit of code. Read it top to bottom, track what a single variable becomes at each line, then key in what it prints — before the clock runs out.</p>
-        <div class="example"><span class="kw">int</span> <span class="var">cookie</span> = <span class="num">5</span>;<br><span class="var">cookie</span> = <span class="var">cookie</span> * <span class="num">4</span>;<br><span class="var">cookie</span> = <span class="var">cookie</span> - <span class="num">6</span>;<br><span class="kw">cout</span> &lt;&lt; <span class="var">cookie</span>;</div>
+        <p>Every case is a tiny bit of code. Read it top to bottom, track what a single variable becomes at each line, then key in what it prints — before the clock runs out. Watch for <span style="color:var(--pink); font-weight:600;">if</span> checks: the indented line only runs when the check is true.</p>
+        <div class="example"><span class="kw">int</span> <span class="var">cookie</span> = <span class="num">5</span>;<br><span class="kw">if</span> (<span class="var">cookie</span> &gt; <span class="num">3</span>)<br>&nbsp;&nbsp;&nbsp;&nbsp;<span class="var">cookie</span> = <span class="var">cookie</span> + <span class="num">3</span>;<br><span class="kw">cout</span> &lt;&lt; <span class="var">cookie</span>;</div>
+        <p class="resume-note hidden" id="resume-note"></p>
+        <div class="rating-picker">
+          <label for="start-rating">Starting rating</label>
+          <div class="rating-stepper">
+            <button type="button" id="rating-dec" aria-label="Decrease starting rating">−</button>
+            <input type="number" id="start-rating" inputmode="numeric" value="90" min="0" max="999" step="10">
+            <button type="button" id="rating-inc" aria-label="Increase starting rating">+</button>
+          </div>
+        </div>
         <button class="btn-primary" id="start-btn">Start Investigating</button>
       </div>
     </section>
@@ -376,7 +414,82 @@ function pickOp(){
   return "mul";
 }
 
+const CMP_OPS = ["<",">","<=",">=","==","!="];
+function evalCmp(op, v, lit){
+  switch(op){
+    case "<": return v < lit;
+    case ">": return v > lit;
+    case "<=": return v <= lit;
+    case ">=": return v >= lit;
+    case "==": return v === lit;
+    case "!=": return v !== lit;
+  }
+}
+// Find a single-digit literal that makes "v OP literal" evaluate to targetTrue.
+function pickLiteralForCondition(op, v, targetTrue){
+  const candidates = [];
+  for(let L=0; L<=9; L++){ if(evalCmp(op, v, L) === targetTrue) candidates.push(L); }
+  if(!candidates.length) return null;
+  return candidates[randInt(candidates.length)];
+}
+function escapeOp(op){ return op.replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
 function clampDepth(d){ return Math.max(0, Math.min(8, d)); }
+
+function generateAssignStep(value){
+  for(let attempt=0; attempt<40; attempt++){
+    const op = pickOp();
+    const lit = randDigit();
+    let nv;
+    if(op==="reset") nv = lit;
+    else if(op==="add") nv = value + lit;
+    else if(op==="sub") nv = value - lit;
+    else nv = value * lit;
+    if(nv >= 0 && nv <= 99) return {op, lit, value: nv};
+  }
+  const lit = randDigit();
+  return {op:"reset", lit, value:lit};
+}
+
+// Body of an if is always an assignment to var: 50/50 whether it depends on
+// var's current value (add/sub/mul) or resets it to a plain literal.
+function generateIfBody(value){
+  const dependsOnVar = Math.random() < 0.5;
+  if(!dependsOnVar){
+    const lit = randDigit();
+    return {op:"reset", lit, resultIfExecuted: lit};
+  }
+  for(let attempt=0; attempt<40; attempt++){
+    const op = ["add","sub","mul"][randInt(3)];
+    const lit = randDigit();
+    let nv;
+    if(op==="add") nv = value + lit;
+    else if(op==="sub") nv = value - lit;
+    else nv = value * lit;
+    if(nv >= 0 && nv <= 99) return {op, lit, resultIfExecuted: nv};
+  }
+  const lit = randDigit();
+  return {op:"reset", lit, resultIfExecuted: lit};
+}
+
+function generateIfStep(value){
+  let condOp = null, condLit = null, truth = null;
+  for(let attempt=0; attempt<30 && condLit===null; attempt++){
+    const op = CMP_OPS[randInt(CMP_OPS.length)];
+    const target = Math.random() < 0.5;
+    const lit = pickLiteralForCondition(op, value, target);
+    if(lit !== null){ condOp = op; condLit = lit; truth = target; }
+  }
+  if(condLit === null){ condOp = ">="; condLit = 0; truth = true; } // var is never negative, so this always holds
+
+  const body = generateIfBody(value);
+  const newValue = truth ? body.resultIfExecuted : value;
+  return {
+    kind:"if", condOp, condLit, truth,
+    bodyOp: body.op, bodyLit: body.lit,
+    value: newValue, executed: truth
+  };
+}
 
 function generateProblem(depth){
   const varName = pickVarName();
@@ -384,54 +497,59 @@ function generateProblem(depth){
   let value = initial;
   const steps = [];
   for(let i=0;i<depth;i++){
-    let placed = false;
-    for(let attempt=0; attempt<40 && !placed; attempt++){
-      const op = pickOp();
-      const lit = randDigit();
-      let nv;
-      if(op==="reset") nv = lit;
-      else if(op==="add") nv = value + lit;
-      else if(op==="sub") nv = value - lit;
-      else nv = value * lit;
-      if(nv >= 0 && nv <= 99){
-        steps.push({op, lit, value: nv});
-        value = nv;
-        placed = true;
-      }
-    }
-    if(!placed){
-      const lit = randDigit();
-      steps.push({op:"reset", lit, value:lit});
-      value = lit;
+    if(Math.random() < 0.5){
+      const step = generateIfStep(value);
+      steps.push(step);
+      value = step.value;
+    } else {
+      const a = generateAssignStep(value);
+      steps.push({kind:"assign", op:a.op, lit:a.lit, value:a.value});
+      value = a.value;
     }
   }
   return { varName, initial, steps, answer: value, depth };
 }
 
-function exprHtml(problem, step){
+function exprHtml(problem, op, lit){
   const v = `<span class="var">${problem.varName}</span>`;
-  if(step.op==="reset") return `<span class="num">${step.lit}</span>`;
-  if(step.op==="add") return `${v} <span class="op">+</span> <span class="num">${step.lit}</span>`;
-  if(step.op==="sub") return `${v} <span class="op">-</span> <span class="num">${step.lit}</span>`;
-  return `${v} <span class="op">*</span> <span class="num">${step.lit}</span>`;
+  if(op==="reset") return `<span class="num">${lit}</span>`;
+  if(op==="add") return `${v} <span class="op">+</span> <span class="num">${lit}</span>`;
+  if(op==="sub") return `${v} <span class="op">-</span> <span class="num">${lit}</span>`;
+  return `${v} <span class="op">*</span> <span class="num">${lit}</span>`;
 }
 
 function buildLines(problem){
   const lines = [];
   lines.push({
+    kind:"decl", stateType:"num",
     html: `<span class="kw">int</span> <span class="var">${problem.varName}</span> <span class="op">=</span> <span class="num">${problem.initial}</span><span class="op">;</span>`,
-    value: problem.initial, plain: `int ${problem.varName} = ${problem.initial};`
+    value: problem.initial
   });
   problem.steps.forEach(s=>{
-    lines.push({
-      html: `<span class="var">${problem.varName}</span> <span class="op">=</span> ${exprHtml(problem,s)}<span class="op">;</span>`,
-      value: s.value,
-      plain: `${problem.varName} = ${s.op==="reset"?s.lit:(problem.varName+(s.op==="add"?" + ":s.op==="sub"?" - ":" * ")+s.lit)};`
-    });
+    if(s.kind === "if"){
+      lines.push({
+        kind:"if-cond", stateType:"bool",
+        html: `<span class="kw">if</span> <span class="op">(</span><span class="var">${problem.varName}</span> <span class="op">${escapeOp(s.condOp)}</span> <span class="num">${s.condLit}</span><span class="op">)</span>`,
+        value: s.truth
+      });
+      lines.push({
+        kind:"if-body", indent:true,
+        stateType: s.executed ? "num" : "skip",
+        html: `<span class="var">${problem.varName}</span> <span class="op">=</span> ${exprHtml(problem, s.bodyOp, s.bodyLit)}<span class="op">;</span>`,
+        value: s.value
+      });
+    } else {
+      lines.push({
+        kind:"assign", stateType:"num",
+        html: `<span class="var">${problem.varName}</span> <span class="op">=</span> ${exprHtml(problem, s.op, s.lit)}<span class="op">;</span>`,
+        value: s.value
+      });
+    }
   });
   lines.push({
+    kind:"cout", stateType:"num",
     html: `<span class="kw">cout</span> <span class="op">&lt;&lt;</span> <span class="var">${problem.varName}</span><span class="op">;</span>`,
-    value: problem.answer, plain: `cout << ${problem.varName};`
+    value: problem.answer
   });
   return lines;
 }
@@ -549,6 +667,30 @@ function drawChart(canvasEl, series){
   });
 }
 
+/* ============ PERSISTENCE ============ */
+const STORAGE_KEY = "codeDetective_save_v1";
+function loadSavedState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return null;
+    const data = JSON.parse(raw);
+    if(typeof data.rating !== "number" || !Array.isArray(data.history)) return null;
+    return data;
+  }catch(e){ return null; }
+}
+function saveState(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      rating: Game.rating,
+      problemCount: Game.problemCount,
+      history: Game.history
+    }));
+  }catch(e){ /* storage unavailable (private mode, quota, etc) — fail silently */ }
+}
+function clearSavedState(){
+  try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
+}
+
 /* ============ GAME STATE ============ */
 const Game = {
   rating: 90,
@@ -558,7 +700,15 @@ const Game = {
   current: null,
   timerRaf: null,
   answerStr: "",
+  sinceEase: 0,
+  easeAt: 5 + randInt(4), // next easier case arrives in 5–8 fresh problems
 };
+
+const savedGame = loadSavedState();
+if(savedGame){
+  Game.problemCount = savedGame.problemCount;
+  Game.history = savedGame.history;
+}
 
 const el = id => document.getElementById(id);
 
@@ -578,7 +728,15 @@ function nextProblem(){
     const item = Game.retryQueue.splice(dueIdx,1)[0];
     problem = item.problem; depth = problem.depth;
   } else {
-    depth = depthOf(Game.rating);
+    const normalDepth = depthOf(Game.rating);
+    Game.sinceEase++;
+    if(Game.sinceEase >= Game.easeAt){
+      depth = Math.max(0, normalDepth - 1);
+      Game.sinceEase = 0;
+      Game.easeAt = 5 + randInt(4);
+    } else {
+      depth = normalDepth;
+    }
     problem = generateProblem(depth);
   }
 
@@ -603,7 +761,7 @@ function renderCode(){
   wrap.innerHTML = "";
   Game.current.lines.forEach((line,i)=>{
     const div = document.createElement("div");
-    div.className = "code-line";
+    div.className = "code-line" + (line.indent ? " indent" : "");
     div.innerHTML = `<span class="ln">${i+1}</span><span>${line.html}</span>`;
     wrap.appendChild(div);
   });
@@ -705,6 +863,7 @@ function submitAnswer(){
     timeSpent: elapsed, typingSpeed, depth: Game.current.depth
   });
   updateHeader();
+  saveState();
 
   if(correct){
     Audio_.success();
@@ -734,6 +893,7 @@ function onTimeout(){
     timeSpent: tTotal, typingSpeed, depth: Game.current.depth
   });
   updateHeader();
+  saveState();
   Audio_.error();
   enqueueRetry(problem);
   showReveal(problem, true, null);
@@ -760,7 +920,17 @@ function showReveal(problem, isTimeout, userVal){
   table.innerHTML = "";
   lines.forEach((line,i)=>{
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td class="code">${line.html}</td><td class="val">${line.value}</td>`;
+    let valCell;
+    if(line.stateType === "bool"){
+      valCell = `<span class="bool-${line.value}">${line.value ? "true" : "false"}</span>`;
+    } else if(line.stateType === "skip"){
+      valCell = `<span class="skip-label">skipped</span>`;
+      tr.classList.add("skipped");
+    } else {
+      valCell = line.value;
+    }
+    const codeClass = "code" + (line.indent ? " indent" : "");
+    tr.innerHTML = `<td class="${codeClass}">${line.html}</td><td class="val">${valCell}</td>`;
     table.appendChild(tr);
   });
   overlay.classList.remove("hidden");
@@ -848,14 +1018,38 @@ window.addEventListener("resize", ()=>{ if(!el("log-screen").classList.contains(
 el("reset-btn").addEventListener("click", ()=>{
   if(!confirm("Reset all progress? This clears your rating and case history.")) return;
   Game.rating = 90; Game.problemCount = 0; Game.history = []; Game.retryQueue = [];
+  Game.sinceEase = 0; Game.easeAt = 5 + randInt(4);
+  clearSavedState();
+  el("start-rating").value = 90;
   updateHeader(); renderStats();
+});
+
+/* ---------- start screen: rating picker ---------- */
+const ratingInput = el("start-rating");
+ratingInput.value = savedGame ? Math.round(savedGame.rating) : 90;
+if(savedGame && savedGame.history.length){
+  const note = el("resume-note");
+  const solved = savedGame.history.length;
+  const correct = savedGame.history.filter(x=>x.correct).length;
+  note.textContent = `Welcome back — ${solved} case${solved===1?"":"s"} logged so far (${correct} correct). Adjust your rating below if you'd like a different starting point.`;
+  note.classList.remove("hidden");
+}
+el("rating-dec").addEventListener("click", ()=>{
+  ratingInput.value = Math.max(0, (parseInt(ratingInput.value,10)||0) - 10);
+});
+el("rating-inc").addEventListener("click", ()=>{
+  ratingInput.value = Math.min(999, (parseInt(ratingInput.value,10)||0) + 10);
 });
 
 /* ---------- start ---------- */
 el("start-btn").addEventListener("click", ()=>{
   Audio_.unlock();
+  const chosen = parseInt(ratingInput.value, 10);
+  Game.rating = Number.isFinite(chosen) ? Math.max(0, Math.min(999, chosen)) : 90;
+  saveState();
   el("start-screen").classList.add("hidden");
   el("play-screen").classList.remove("hidden");
+  updateHeader();
   nextProblem();
 });
 
