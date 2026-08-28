@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Quick Call — True or False</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-950:#120a22;
+    --surface-800:#241a42;
+    --surface-700:#33245a;
+    --violet:#a970ff;
+    --violet-soft:#c9a6ff;
+    --pink:#ff6fb0;
+    --amber:#ffcf5c;
+    --red:#ff5c7c;
+    --green:#6ee7b7;
+    --text-0:#f6f1ff;
+    --text-1:#cabce9;
+    --text-2:#9585bd;
+    --line:rgba(169,112,255,.18);
+    --radius-lg:22px;
+    --radius-md:14px;
+    --shadow-glow:0 0 0 1px rgba(169,112,255,.25), 0 12px 40px -12px rgba(90,30,180,.55);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  .expr, .stat-strip .v{
+    font-variant-ligatures:none;
+    -webkit-font-feature-settings:"liga" 0,"calt" 0,"dlig" 0;
+    font-feature-settings:"liga" 0,"calt" 0,"dlig" 0;
+  }
+  body{
+    margin:0; min-height:100vh;
+    background:
+      radial-gradient(1200px 600px at 15% -10%, #2a1a52 0%, transparent 60%),
+      radial-gradient(900px 500px at 110% 10%, #3a1f5c 0%, transparent 55%),
+      var(--bg-950);
+    color:var(--text-0); font-family:'Inter',system-ui,sans-serif; overflow-x:hidden;
+  }
+  body::before{
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:0;
+    background-image:
+      radial-gradient(1.5px 1.5px at 20px 30px, rgba(255,255,255,.5), transparent),
+      radial-gradient(1.5px 1.5px at 120px 80px, rgba(255,255,255,.35), transparent),
+      radial-gradient(1px 1px at 200px 140px, rgba(255,255,255,.4), transparent),
+      radial-gradient(1.5px 1.5px at 60px 180px, rgba(255,255,255,.3), transparent),
+      radial-gradient(1px 1px at 260px 40px, rgba(255,255,255,.35), transparent);
+    background-repeat:repeat; background-size:300px 220px; opacity:.5;
+  }
+  #confetti-canvas{position:fixed; inset:0; z-index:60; pointer-events:none;}
+  #app{position:relative; z-index:1; min-height:100vh; display:flex; flex-direction:column;}
+
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between; gap:10px; padding:14px 16px; flex-wrap:wrap;
+    border-bottom:1px solid var(--line); background:rgba(18,10,34,.55); backdrop-filter:blur(10px);
+    position:sticky; top:0; z-index:20;
+  }
+  .brand{display:flex; align-items:center; gap:9px; font-family:'Fredoka',sans-serif; font-weight:600; font-size:18px;}
+  .brand small{display:block; font-family:'Inter'; font-weight:500; font-size:10px; color:var(--text-2); letter-spacing:1.5px;}
+  .streak-pill{
+    display:flex; align-items:center; gap:8px; background:var(--surface-800); border:1px solid var(--line);
+    border-radius:999px; padding:6px 14px 6px 8px;
+  }
+  .streak-pill .dot{width:26px;height:26px;border-radius:50%; background:conic-gradient(var(--pink), var(--violet)); display:flex; align-items:center; justify-content:center; font-size:12px;}
+  .streak-pill .num{font-family:'Fredoka'; font-weight:600; font-size:16px;}
+  .streak-pill .lvl{font-size:10px; color:var(--text-2); letter-spacing:.5px;}
+
+  main{flex:1; display:flex; flex-direction:column; align-items:center; padding:18px 14px 40px;}
+  .screen{width:100%; max-width:560px; display:flex; flex-direction:column; gap:18px;}
+  .hidden{display:none !important;}
+
+  .start-card{
+    background:linear-gradient(160deg, var(--surface-800), var(--surface-700));
+    border:1px solid var(--line); border-radius:var(--radius-lg); padding:32px 24px; text-align:center;
+    box-shadow:var(--shadow-glow); margin-top:6vh;
+  }
+  .start-card .badge-icon{
+    width:76px;height:76px;border-radius:22px; margin:0 auto 18px;
+    background:linear-gradient(135deg,var(--violet),var(--pink)); display:flex; align-items:center; justify-content:center;
+    box-shadow:0 10px 30px -8px rgba(169,112,255,.8);
+  }
+  .start-card h1{font-family:'Fredoka'; font-size:clamp(22px,5vw,29px); margin:0 0 8px; font-weight:600;}
+  .start-card p{color:var(--text-1); font-size:14.5px; line-height:1.6; max-width:420px; margin:0 auto 20px;}
+  .start-card .example{
+    background:var(--bg-950); border:1px solid var(--line); border-radius:var(--radius-md); padding:16px;
+    text-align:center; font-family:'JetBrains Mono',monospace; font-size:22px; font-weight:700; color:var(--text-0);
+    margin:0 auto 22px; max-width:260px;
+    font-variant-ligatures:none; font-feature-settings:"liga" 0,"calt" 0;
+  }
+  .example .n{color:var(--amber);} .example .o{color:var(--pink); margin:0 6px;}
+  .btn-primary{
+    font-family:'Fredoka'; font-weight:600; font-size:16px; border:none; border-radius:999px; padding:14px 32px;
+    cursor:pointer; background:linear-gradient(135deg,var(--violet),#d873ff); color:#160a2c;
+    box-shadow:0 10px 26px -8px rgba(169,112,255,.85); transition:transform .15s ease;
+  }
+  .btn-primary:active{transform:scale(.96);}
+
+  .timer-wrap{display:flex; align-items:center; gap:10px;}
+  .timer-track{flex:1; height:10px; border-radius:999px; background:var(--surface-800); overflow:hidden; border:1px solid var(--line);}
+  .timer-fill{height:100%; width:100%; border-radius:999px; background:linear-gradient(90deg,var(--violet),var(--pink)); transition:width .1s linear, background .3s;}
+  .timer-num{font-family:'JetBrains Mono'; font-size:13px; color:var(--text-1); min-width:36px; text-align:right;}
+
+  .cond-card{
+    background:var(--bg-950); border:1px solid var(--line); border-radius:var(--radius-lg);
+    box-shadow:var(--shadow-glow); padding:44px 20px; display:flex; align-items:center; justify-content:center;
+    transition:box-shadow .2s, border-color .2s; min-height:150px;
+  }
+  .cond-card.flash-good{border-color:var(--green); box-shadow:0 0 0 1px var(--green), 0 0 40px -6px rgba(110,231,183,.55);}
+  .cond-card.flash-bad{border-color:var(--red); box-shadow:0 0 0 1px var(--red), 0 0 40px -6px rgba(255,92,124,.55);}
+  .expr{font-family:'JetBrains Mono',monospace; font-size:clamp(30px,9vw,42px); font-weight:700; letter-spacing:1px; text-align:center;}
+  .expr .n{color:var(--amber);} .expr .o{color:var(--pink); margin:0 12px;}
+
+  .answer-note{text-align:center; font-family:'Fredoka'; font-weight:500; font-size:14px; min-height:20px; color:var(--text-1);}
+  .answer-note.good{color:var(--green);} .answer-note.bad{color:var(--red);}
+
+  .call-row{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  .call-btn{
+    touch-action:manipulation; -webkit-user-select:none; user-select:none;
+    font-family:'Fredoka'; font-weight:700; font-size:22px; letter-spacing:.5px;
+    border-radius:20px; padding:26px 0; cursor:pointer; border:1px solid var(--line);
+    transition:transform .1s, filter .15s;
+  }
+  .call-btn:active{transform:scale(.95);}
+  .call-btn[disabled]{opacity:.45; pointer-events:none;}
+  .call-true{background:linear-gradient(135deg,#2f9e74,#6ee7b7); color:#0b2418;}
+  .call-false{background:linear-gradient(135deg,#c23a58,#ff6fb0); color:#2c0a14;}
+
+  .stat-strip{display:flex; justify-content:center; gap:22px; padding-top:2px;}
+  .stat-strip .item{text-align:center;}
+  .stat-strip .v{font-family:'Fredoka'; font-weight:600; font-size:17px;}
+  .stat-strip .l{font-size:10px; color:var(--text-2); letter-spacing:.6px;}
+
+  .toast{
+    position:fixed; left:50%; top:16%; transform:translate(-50%,-10px); z-index:70;
+    background:var(--surface-700); border:1px solid var(--line); border-radius:999px; padding:10px 22px;
+    font-family:'Fredoka'; font-weight:600; font-size:15px; box-shadow:var(--shadow-glow); opacity:0; pointer-events:none;
+    transition:opacity .25s, transform .25s;
+  }
+  .toast.show{opacity:1; transform:translate(-50%,0);}
+
+  .reset-row{display:flex; justify-content:center;}
+  .btn-ghost{background:transparent; border:1px solid var(--line); color:var(--text-2); font-family:'Inter'; font-size:12px; padding:8px 16px; border-radius:999px; cursor:pointer;}
+
+  @media(prefers-reduced-motion:reduce){ *{animation-duration:.001s !important; transition-duration:.001s !important;} }
+</style>
+</head>
+<body>
+<canvas id="confetti-canvas"></canvas>
+<div id="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <rect width="28" height="28" rx="8" fill="url(#g1)"/>
+        <path d="M9 14h10M14 9v10" stroke="#160a2c" stroke-width="2.4" stroke-linecap="round"/>
+        <defs><linearGradient id="g1" x1="0" y1="0" x2="28" y2="28"><stop stop-color="#a970ff"/><stop offset="1" stop-color="#ff6fb0"/></linearGradient></defs>
+      </svg>
+      <div>QUICK CALL<small>true or false</small></div>
+    </div>
+    <div class="streak-pill">
+      <div class="dot">⚡</div>
+      <div><div class="num" id="streak-num">0</div><div class="lvl">STREAK</div></div>
+    </div>
+  </header>
+
+  <main>
+    <!-- START -->
+    <section id="start-screen" class="screen">
+      <div class="start-card">
+        <div class="badge-icon">
+          <svg width="34" height="34" viewBox="0 0 28 28" fill="none">
+            <path d="M9 14h10M14 9v10" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h1>Call it before time's up</h1>
+        <p>Two numbers, one operator. Decide fast — is the statement true or false? You've got 5 seconds a case. No rating, no pressure — just how sharp is your streak.</p>
+        <div class="example"><span class="n">7</span><span class="o">&gt;=</span><span class="n">7</span></div>
+        <button class="btn-primary" id="start-btn">Start the Drill</button>
+      </div>
+    </section>
+
+    <!-- PLAY -->
+    <section id="play-screen" class="screen hidden">
+      <div class="timer-wrap">
+        <div class="timer-track"><div class="timer-fill" id="timer-fill"></div></div>
+        <div class="timer-num" id="timer-num">5.0s</div>
+      </div>
+      <div class="cond-card" id="cond-card">
+        <div class="expr" id="expr"></div>
+      </div>
+      <div class="answer-note" id="answer-note">&nbsp;</div>
+      <div class="call-row">
+        <button class="call-btn call-true" id="btn-true">TRUE</button>
+        <button class="call-btn call-false" id="btn-false">FALSE</button>
+      </div>
+      <div class="stat-strip">
+        <div class="item"><div class="v" id="s-solved">0</div><div class="l">SOLVED</div></div>
+        <div class="item"><div class="v" id="s-accuracy">0%</div><div class="l">ACCURACY</div></div>
+        <div class="item"><div class="v" id="s-best">0</div><div class="l">BEST STREAK</div></div>
+      </div>
+      <div class="reset-row"><button class="btn-ghost" id="reset-btn">Reset stats</button></div>
+    </section>
+  </main>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------- persistence ---------- */
+const STORAGE_KEY = "quickCall_save_v1";
+function loadSaved(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return null;
+    const d = JSON.parse(raw);
+    if(typeof d.solved !== "number") return null;
+    return d;
+  }catch(e){ return null; }
+}
+function saveState(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      solved: Stat.solved, correct: Stat.correct, bestStreak: Stat.bestStreak
+    }));
+  }catch(e){}
+}
+function clearSaved(){ try{ localStorage.removeItem(STORAGE_KEY); }catch(e){} }
+
+const saved = loadSaved();
+const Stat = {
+  solved: saved ? saved.solved : 0,
+  correct: saved ? saved.correct : 0,
+  bestStreak: saved ? saved.bestStreak : 0,
+  streak: 0
+};
+
+const el = id => document.getElementById(id);
+function randInt(n){ return Math.floor(Math.random()*n); }
+
+/* ---------- audio ---------- */
+const Audio_ = (function(){
+  let ctx = null;
+  function ensure(){ if(!ctx){ ctx = new (window.AudioContext||window.webkitAudioContext)(); } return ctx; }
+  function tone(freq, start, dur, type, gain){
+    const c = ensure();
+    const o = c.createOscillator(); const g = c.createGain();
+    o.type = type || "sine"; o.frequency.value = freq;
+    g.gain.setValueAtTime(0, c.currentTime+start);
+    g.gain.linearRampToValueAtTime(gain||0.12, c.currentTime+start+0.015);
+    g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime+start+dur);
+    o.connect(g); g.connect(c.destination);
+    o.start(c.currentTime+start); o.stop(c.currentTime+start+dur+0.02);
+  }
+  return {
+    unlock(){ ensure(); if(ctx.state==="suspended") ctx.resume(); },
+    success(){ try{ tone(523,0,0.1,"triangle"); tone(784,0.08,0.16,"triangle"); }catch(e){} },
+    error(){ try{ tone(220,0,0.14,"sawtooth",0.08); tone(160,0.1,0.2,"sawtooth",0.08); }catch(e){} },
+    milestone(){ try{ tone(523,0,0.1,"triangle"); tone(659,0.09,0.1,"triangle"); tone(784,0.18,0.1,"triangle"); tone(988,0.27,0.22,"triangle"); }catch(e){} }
+  };
+})();
+
+/* ---------- confetti ---------- */
+const Confetti = (function(){
+  const canvas = el("confetti-canvas");
+  const ctx = canvas.getContext("2d");
+  let particles = [], running = false;
+  const colors = ["#a970ff","#ff6fb0","#ffcf5c","#c9a6ff","#6ee7b7"];
+  function resize(){ canvas.width = innerWidth; canvas.height = innerHeight; }
+  window.addEventListener("resize", resize); resize();
+  function burst(n){
+    if(matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    for(let i=0;i<(n||60);i++){
+      particles.push({
+        x: Math.random()*canvas.width, y: -20 - Math.random()*100,
+        vx:(Math.random()-0.5)*3, vy:2+Math.random()*3, size:5+Math.random()*5,
+        rot:Math.random()*360, vr:(Math.random()-0.5)*10, color: colors[randInt(colors.length)], life:0
+      });
+    }
+    if(!running){ running = true; requestAnimationFrame(tick); }
+  }
+  function tick(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    particles.forEach(p=>{
+      p.x+=p.vx; p.y+=p.vy; p.vy+=0.03; p.rot+=p.vr; p.life++;
+      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot*Math.PI/180);
+      ctx.fillStyle=p.color; ctx.fillRect(-p.size/2,-p.size/2,p.size,p.size*0.6);
+      ctx.restore();
+    });
+    particles = particles.filter(p=>p.y<canvas.height+40 && p.life<400);
+    if(particles.length){ requestAnimationFrame(tick); } else { running=false; ctx.clearRect(0,0,canvas.width,canvas.height); }
+  }
+  return { burst };
+})();
+
+/* ---------- problem generation ---------- */
+const OPS = ["<",">","<=",">=","==","!="];
+function evalCmp(op,a,b){
+  switch(op){
+    case "<": return a<b;
+    case ">": return a>b;
+    case "<=": return a<=b;
+    case ">=": return a>=b;
+    case "==": return a===b;
+    case "!=": return a!==b;
+  }
+}
+function escapeOp(op){ return op.replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function generateCase(){
+  const a = randInt(100);
+  let b;
+  if(Math.random() < 0.28){ b = a; }
+  else { do{ b = randInt(100); }while(b===a); }
+  const op = OPS[randInt(OPS.length)];
+  const answer = evalCmp(op, a, b);
+  return {a, b, op, answer};
+}
+
+/* ---------- game loop ---------- */
+const TOTAL_TIME = 5; // seconds, fixed per problem
+let current = null;
+let timerRaf = null;
+let locked = false;
+
+function startCase(){
+  current = generateCase();
+  locked = false;
+  el("btn-true").disabled = false;
+  el("btn-false").disabled = false;
+  el("cond-card").classList.remove("flash-good","flash-bad");
+  el("answer-note").textContent = "\u00A0";
+  el("answer-note").className = "answer-note";
+  el("expr").innerHTML = `<span class="n">${current.a}</span><span class="o">${escapeOp(current.op)}</span><span class="n">${current.b}</span>`;
+  current.startTime = performance.now();
+  startTimer();
+}
+
+function startTimer(){
+  if(timerRaf) cancelAnimationFrame(timerRaf);
+  function frame(){
+    const elapsed = (performance.now()-current.startTime)/1000;
+    const remain = Math.max(0, TOTAL_TIME-elapsed);
+    const pct = Math.max(0, Math.min(100,(remain/TOTAL_TIME)*100));
+    el("timer-fill").style.width = pct+"%";
+    el("timer-num").textContent = remain.toFixed(1)+"s";
+    const fill = el("timer-fill");
+    if(pct<20) fill.style.background = "linear-gradient(90deg,#ff5c7c,#ffcf5c)";
+    else if(pct<50) fill.style.background = "linear-gradient(90deg,#ffcf5c,#a970ff)";
+    else fill.style.background = "linear-gradient(90deg,#a970ff,#ff6fb0)";
+    if(remain<=0){ resolveCase(null); return; }
+    timerRaf = requestAnimationFrame(frame);
+  }
+  timerRaf = requestAnimationFrame(frame);
+}
+function stopTimer(){ if(timerRaf) cancelAnimationFrame(timerRaf); timerRaf=null; }
+
+function resolveCase(userAnswer){
+  if(locked) return;
+  locked = true;
+  stopTimer();
+  el("btn-true").disabled = true;
+  el("btn-false").disabled = true;
+
+  const correct = userAnswer === current.answer;
+  Stat.solved++;
+  if(correct) Stat.correct++;
+
+  const note = el("answer-note");
+  const card = el("cond-card");
+  if(correct){
+    Stat.streak++;
+    if(Stat.streak > Stat.bestStreak) Stat.bestStreak = Stat.streak;
+    card.classList.add("flash-good");
+    note.textContent = "Correct — it's " + (current.answer ? "true" : "false") + ".";
+    note.classList.add("good");
+    Audio_.success();
+    if(Stat.streak>0 && Stat.streak%5===0){
+      Audio_.milestone();
+      Confetti.burst(90);
+      showToast(Stat.streak + " in a row! \uD83D\uDD25");
+    }
+  } else {
+    Stat.streak = 0;
+    card.classList.add("flash-bad");
+    note.textContent = userAnswer===null
+      ? "Time's up — it's " + (current.answer ? "true" : "false") + "."
+      : "Not quite — it's " + (current.answer ? "true" : "false") + ".";
+    note.classList.add("bad");
+    Audio_.error();
+  }
+
+  updateStats();
+  saveState();
+  setTimeout(startCase, correct ? 750 : 1250);
+}
+
+function updateStats(){
+  el("streak-num").textContent = Stat.streak;
+  el("s-solved").textContent = Stat.solved;
+  el("s-accuracy").textContent = Stat.solved ? Math.round((Stat.correct/Stat.solved)*100)+"%" : "0%";
+  el("s-best").textContent = Stat.bestStreak;
+}
+
+function showToast(msg){
+  const t = el("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"), 1100);
+}
+
+/* ---------- input ---------- */
+el("btn-true").addEventListener("click", ()=>{ Audio_.unlock(); resolveCase(true); });
+el("btn-false").addEventListener("click", ()=>{ Audio_.unlock(); resolveCase(false); });
+document.addEventListener("keydown", (e)=>{
+  if(el("play-screen").classList.contains("hidden") || !current) return;
+  if(e.key==="ArrowLeft" || e.key.toLowerCase()==="t"){ resolveCase(true); }
+  else if(e.key==="ArrowRight" || e.key.toLowerCase()==="f"){ resolveCase(false); }
+});
+
+el("reset-btn").addEventListener("click", ()=>{
+  if(!confirm("Reset your Quick Call stats?")) return;
+  Stat.solved=0; Stat.correct=0; Stat.bestStreak=0; Stat.streak=0;
+  clearSaved();
+  updateStats();
+});
+
+el("start-btn").addEventListener("click", ()=>{
+  Audio_.unlock();
+  el("start-screen").classList.add("hidden");
+  el("play-screen").classList.remove("hidden");
+  updateStats();
+  startCase();
+});
+
+updateStats();
+})();
+</script>
+</body>
+</html>
