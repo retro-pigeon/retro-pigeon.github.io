@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="color-scheme" content="dark" />
+<title>Boolean Blitz</title>
+<style>
+  :root{
+    --bg:#0b0f1f;
+    --bg2:#0e1430;
+    --card:#151a2e;
+    --ink:#e7eaf6;
+    --muted:#98a1b8;
+    --accent:#8b93ff;
+    --accent-ink:#ffffff;
+    --accent-bg:#232b57;
+    --accent-border:#333d70;
+    --ok:#4ade80;
+    --ok-bg:#12301f;
+    --err:#f87171;
+    --err-bg:#3a1518;
+    --warn:#fbbf24;
+    --warn-bg:#3a2b0e;
+    --bar:#262c45;
+    --border:#232943;
+    --chip-bg:#1c2238;
+    --chip-border:#2a3149;
+    --radius:20px;
+    --shadow:0 24px 64px -26px rgba(0,0,0,.75);
+    --shadow-soft:0 10px 28px -18px rgba(0,0,0,.65);
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,"SFMono-Regular","SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:var(--font);
+    background:
+      radial-gradient(1200px 720px at 12% -10%, #202a5e 0%, transparent 55%),
+      radial-gradient(900px 620px at 100% 0%, #16345c 0%, transparent 45%),
+      var(--bg);
+    color:var(--ink);
+    min-height:100dvh;
+    -webkit-tap-highlight-color:transparent;
+    padding:16px clamp(12px,4vw,28px) 40px;
+  }
+  .wrap{max-width:760px;margin:0 auto}
+  .app-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 4px 16px}
+  .brand{display:flex;align-items:center;gap:12px}
+  .brand .logo{
+    width:46px;height:46px;border-radius:14px;flex:none;
+    background:linear-gradient(135deg,#8b93ff,#6366f1);
+    display:grid;place-items:center;color:#fff;font-weight:800;font-size:22px;
+    box-shadow:0 12px 24px -10px rgba(99,102,241,.75);
+  }
+  .brand h1{font-size:clamp(1.3rem,4.6vw,1.65rem);margin:0;letter-spacing:-.02em;line-height:1;color:var(--ink)}
+  .brand small{display:block;color:var(--muted);font-weight:600;margin-top:3px;letter-spacing:.02em}
+  .head-actions{display:flex;gap:8px}
+  .icon-btn{
+    width:52px;height:52px;border-radius:16px;border:1px solid var(--border);
+    background:#1a2036;cursor:pointer;font-size:20px;display:grid;place-items:center;
+    box-shadow:var(--shadow-soft);transition:transform .08s ease, background .12s ease;
+    min-width:52px;min-height:52px;color:var(--ink);
+  }
+  .icon-btn:active{transform:scale(.94)}
+  .icon-btn[aria-pressed="true"]{background:#242e60;border-color:#333d70;color:var(--accent)}
+
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:0 2px 16px}
+  .stat{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:12px 12px 14px;box-shadow:var(--shadow-soft);min-width:0}
+  .stat .label{font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+  .stat .value{font-size:clamp(1.25rem,5vw,1.7rem);font-weight:800;margin-top:4px;letter-spacing:-.02em;line-height:1;color:var(--ink)}
+  .stat .value.delta-up{color:var(--ok)}
+  .stat .value.delta-down{color:var(--err)}
+
+  .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid var(--border);
+    padding:clamp(16px,4vw,26px);position:relative;min-height:320px;display:flex;flex-direction:column}
+
+  .timer-row{display:flex;align-items:center;gap:14px;margin-bottom:6px}
+  .timer-bar{flex:1;height:20px;border-radius:999px;background:var(--bar);overflow:hidden;position:relative;box-shadow:inset 0 1px 3px rgba(0,0,0,.5)}
+  .timer-fill{height:100%;width:100%;border-radius:999px;background:linear-gradient(90deg,#22c55e,#16a34a);
+    transition:width .06s linear, background-color .3s ease}
+  .timer-fill.warn{background:linear-gradient(90deg,#f59e0b,#f59e0b)}
+  .timer-fill.danger{background:linear-gradient(90deg,#ef4444,#dc2626)}
+  .clock{font-family:var(--mono);font-weight:800;font-size:clamp(1.35rem,6vw,1.8rem);min-width:96px;text-align:right;letter-spacing:-.02em;line-height:1;color:var(--ink)}
+  .clock small{font-size:.6em;color:var(--muted);font-weight:700}
+  .clock.low{color:var(--err);animation:pulse .9s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+  .paused-note{color:var(--warn);font-weight:700;font-size:.95rem;margin:2px 0 10px}
+  .problem-meta{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:6px 0 10px;flex-wrap:wrap}
+  .chip{font-size:.78rem;font-weight:700;color:var(--accent);background:var(--chip-bg);border:1px solid var(--chip-border);padding:5px 11px;border-radius:999px;letter-spacing:.02em}
+  .chip.muted{color:var(--muted);background:#1c2238;border-color:#2a3149}
+  .statement{font-family:var(--mono);font-size:clamp(1.5rem,7.5vw,2.6rem);font-weight:700;line-height:1.35;letter-spacing:-.01em;
+    text-align:center;padding:clamp(18px,4vw,30px) 8px;flex:1;display:flex;align-items:center;justify-content:center;
+    word-break:break-word;overflow-wrap:anywhere;min-height:150px;color:var(--ink)}
+  .prompt{text-align:center;color:var(--muted);font-weight:600;font-size:1rem;margin-bottom:6px}
+
+  .answers{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+  .answer-btn{border:0;border-radius:18px;min-height:96px;padding:14px 12px;cursor:pointer;
+    font-family:var(--font);font-size:clamp(1.3rem,6vw,1.7rem);font-weight:800;letter-spacing:.02em;
+    color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+    box-shadow:var(--shadow-soft);transition:transform .08s ease, filter .12s ease;
+    touch-action:manipulation;-webkit-user-select:none;user-select:none}
+  .answer-btn .sym{font-size:1.1em;line-height:1}
+  .answer-btn .word{font-size:.85em;letter-spacing:.06em}
+  .answer-btn.true{background:linear-gradient(160deg,#22c55e,#15803d)}
+  .answer-btn.false{background:linear-gradient(160deg,#f87171,#dc2626)}
+  .answer-btn:active{transform:scale(.97)}
+  .answer-btn:disabled{filter:saturate(.2) brightness(.85);cursor:default}
+  .answer-btn:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+
+  .kbd-hint{display:none;text-align:center;color:var(--muted);font-size:.82rem;margin-top:10px;font-weight:600}
+  .kbd-hint kbd{background:#1c2238;border:1px solid #2a3149;border-radius:6px;padding:1px 6px;font-family:var(--mono)}
+  @media (hover:hover) and (pointer:fine){ .kbd-hint{display:block} }
+
+  .top-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .pause-btn{border:1px solid var(--border);background:#1a2036;border-radius:14px;min-height:52px;min-width:52px;
+    padding:0 16px;font-size:1rem;font-weight:700;color:var(--ink);cursor:pointer;
+    display:inline-flex;align-items:center;gap:8px;box-shadow:var(--shadow-soft);touch-action:manipulation}
+  .pause-btn:active{transform:scale(.96)}
+
+  .overlay{position:absolute;inset:0;border-radius:var(--radius);background:rgba(11,15,31,.92);backdrop-filter:blur(5px);
+    display:none;flex-direction:column;align-items:center;justify-content:center;padding:22px;text-align:center;z-index:5}
+  .overlay.show{display:flex}
+  .overlay .big{font-size:clamp(2rem,11vw,3.2rem);font-weight:900;letter-spacing:-.02em;line-height:1;display:flex;align-items:center;gap:10px}
+  .overlay .big.bad{color:var(--err)} .overlay .big.good{color:var(--ok)} .overlay .big.neutral{color:var(--ink)}
+  .overlay .sub{margin-top:10px;color:var(--muted);font-size:1.05rem;font-weight:600}
+  .overlay .delta{font-size:1.15rem;font-weight:800;margin-top:6px;color:var(--ink)}
+  .overlay .solution{margin:16px 0 8px;max-width:560px;width:100%;text-align:left}
+  .overlay .solution h3{font-size:.85rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:0 0 8px;font-weight:800}
+  .steps{display:flex;flex-direction:column;gap:6px;max-height:180px;overflow:auto;padding-right:4px}
+  .step{font-family:var(--mono);font-size:clamp(.95rem,3.4vw,1.05rem);background:#1d2338;border:1px solid #2a3149;border-radius:12px;padding:8px 11px;line-height:1.4;color:var(--ink)}
+  .step b{color:var(--accent)}
+  .btn-main{border:0;border-radius:16px;min-height:64px;padding:14px 30px;cursor:pointer;
+    font-family:var(--font);font-size:1.2rem;font-weight:800;color:#fff;
+    background:linear-gradient(135deg,#8b93ff,#6d76ff);box-shadow:var(--shadow-soft);
+    transition:transform .08s ease;touch-action:manipulation;margin-top:16px}
+  .btn-main:active{transform:scale(.97)}
+  .btn-main.ghost{background:#1a2036;color:var(--ink);border:1px solid var(--border)}
+  .btn-main.err{background:linear-gradient(135deg,#f87171,#dc2626)}
+  .btn-main.ok{background:linear-gradient(135deg,#22c55e,#15803d)}
+  .btn-main:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+  .btn-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+
+  .start-card{min-height:auto}
+  .start-hero{font-size:clamp(2.2rem,12vw,3.4rem);font-weight:900;letter-spacing:-.03em;line-height:1.02;text-align:center;color:var(--ink)}
+  .start-hero span{color:var(--accent)}
+  .start-desc{text-align:center;color:var(--muted);font-size:clamp(1rem,3.6vw,1.15rem);margin:14px auto 22px;max-width:440px;font-weight:500;line-height:1.5}
+  .how{border:1px solid var(--border);background:#12172b;border-radius:16px;padding:16px;margin-bottom:18px}
+  .how h2{margin:0 0 10px;font-size:1rem;color:var(--ink);font-weight:800}
+  .how ul{margin:0;padding-left:20px;color:var(--muted);font-weight:500;line-height:1.6}
+  .how li{margin:4px 0}
+  .how b{color:var(--ink)}
+  .start-cta{text-align:center}
+  #startBtn{min-height:72px;width:min(100%,320px);font-size:1.35rem;border-radius:20px}
+
+  #confetti{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;border-radius:var(--radius);z-index:4}
+
+  /* transient correct feedback (no confirmation screen) */
+  .correct-flash{position:absolute;inset:0;border-radius:var(--radius);z-index:6;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0}
+  .correct-flash.show{animation:flashPop .72s ease forwards}
+  .correct-flash .inner{display:flex;flex-direction:column;align-items:center;gap:6px;background:rgba(17,26,45,.9);border:2px solid var(--ok);padding:18px 36px;border-radius:22px;box-shadow:0 20px 60px -20px rgba(0,0,0,.75)}
+  .correct-flash .mark{font-size:3rem;color:var(--ok);font-weight:900;line-height:1}
+  .correct-flash .word{color:var(--ok);font-weight:800;font-size:1.1rem;letter-spacing:.08em;text-transform:uppercase}
+  @keyframes flashPop{0%{opacity:0;transform:scale(.86)}12%{opacity:1;transform:scale(1)}70%{opacity:1}100%{opacity:0;transform:scale(.98)}}
+
+  .footer{text-align:center;color:var(--muted);font-size:.82rem;margin-top:22px;font-weight:600;line-height:1.6}
+  .footer a{color:var(--accent)}
+  .visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+  @media (max-width:420px){ .stats{grid-template-columns:repeat(2,1fr)} }
+  @media (prefers-reduced-motion:reduce){ *{animation:none !important;transition:none !important} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="app-header">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">¬</div>
+      <div>
+        <h1>Boolean Blitz</h1>
+        <small>Evaluate &middot; Answer &middot; Build your streak</small>
+      </div>
+    </div>
+    <div class="head-actions">
+      <button id="soundToggle" class="icon-btn" aria-pressed="false" title="Toggle sound" aria-label="Toggle sound effects">🔊</button>
+    </div>
+  </header>
+
+  <section class="stats" aria-label="Player statistics">
+    <div class="stat">
+      <div class="label">Rating</div>
+      <div class="value" id="statRating">100</div>
+    </div>
+    <div class="stat">
+      <div class="label">Momentum</div>
+      <div class="value" id="statMomentum">0</div>
+    </div>
+    <div class="stat">
+      <div class="label">Today</div>
+      <div class="value" id="statToday">0</div>
+    </div>
+    <div class="stat">
+      <div class="label">Avg last 50</div>
+      <div class="value" id="statAvg">&mdash;</div>
+    </div>
+  </section>
+
+  <div class="card" id="card">
+    <!-- START -->
+    <div id="screen-start" class="start-card">
+      <div class="start-hero">not(true <span>or</span> false)</div>
+      <p class="start-desc">Solve boolean algebra statements before time runs out. Answer them quickly and correctly to boost your rating and momentum &mdash; miss one and momentum cools off.</p>
+      <div class="how">
+        <h2>How to play</h2>
+        <ul>
+          <li>A <b>true/false</b> statement is shown and the timer starts.</li>
+          <li>Choose <b>TRUE</b> or <b>FALSE</b> (keys <b>T</b>/<b>F</b>).</li>
+          <li>Correct = rating up. Wrong or running out = rating down.</li>
+          <li>Hit <b>P</b> or the pause button to stop the clock.</li>
+          <li>Get it wrong? A step-by-step solution appears.</li>
+        </ul>
+      </div>
+      <div class="start-cta">
+        <button id="startBtn" class="btn-main">Start &middot; Press Enter</button>
+      </div>
+    </div>
+
+    <!-- PLAY -->
+    <div id="screen-play" style="display:none;flex-direction:column;min-height:0">
+      <div class="top-row">
+        <span class="chip" id="chipDepth">Depth 1</span>
+        <span class="chip muted">Rated <span id="chipRating">100</span></span>
+        <button id="pauseBtn" class="pause-btn" aria-label="Pause the timer">⏸ Pause</button>
+      </div>
+
+      <div class="timer-row" aria-hidden="false">
+        <div class="timer-bar"><div class="timer-fill" id="timerFill"></div></div>
+        <div class="clock" id="clock">0.0<small>s</small></div>
+      </div>
+      <div class="paused-note" style="display:none" id="pausedNote">⏸ Paused &mdash; clock is frozen</div>
+
+      <div class="problem-meta">
+        <span class="chip" id="chipStreak">Streak 0</span>
+        <span class="chip muted">Momentum <span id="chipMomentum">0</span></span>
+      </div>
+
+      <div class="statement" id="statement">&nbsp;</div>
+      <div class="prompt">Is this expression true or false?</div>
+
+      <div class="answers">
+        <button class="answer-btn true" id="btnTrue" aria-label="Answer True"><span class="sym" aria-hidden="true">✓</span><span class="word">TRUE</span></button>
+        <button class="answer-btn false" id="btnFalse" aria-label="Answer False"><span class="sym" aria-hidden="true">✗</span><span class="word">FALSE</span></button>
+      </div>
+      <div class="kbd-hint">Shortcuts: <kbd>T</kbd> true &middot; <kbd>F</kbd> false &middot; <kbd>P</kbd> pause</div>
+
+      <!-- RESULT OVERLAY (within play screen) -->
+      <div class="overlay" id="resultOverlay" role="dialog" aria-label="Result">
+        <div class="big" id="resultTitle">Correct</div>
+        <div class="sub" id="resultSub">The answer was &hellip;</div>
+        <div class="delta" id="resultDelta">Rating +8</div>
+        <div class="solution" id="resultSolution" style="display:none">
+          <h3>Step-by-step solution</h3>
+          <div class="steps" id="steps"></div>
+        </div>
+        <div class="btn-row">
+          <button id="quitBtn" class="btn-main ghost">Quit</button>
+          <button id="nextBtn" class="btn-main ok">Next problem</button>
+        </div>
+      </div>
+
+      <!-- PAUSE OVERLAY -->
+      <div class="overlay" id="pauseOverlay" role="dialog" aria-label="Paused">
+        <div class="big neutral">⏸ Paused</div>
+        <div class="sub">Take your time &mdash; the clock is stopped.</div>
+        <div class="btn-row">
+          <button id="resumeBtn" class="btn-main ok">Resume</button>
+          <button id="quitBtn2" class="btn-main ghost">Quit</button>
+        </div>
+      </div>
+
+      <!-- transient correct feedback (no confirmation screen) -->
+      <div class="correct-flash" id="correctFlash" aria-hidden="true">
+        <div class="inner">
+          <div class="mark">✓</div>
+          <div class="word">Correct</div>
+        </div>
+      </div>
+
+      <canvas id="confetti" aria-hidden="true" style="display:none"></canvas>
+    </div>
+  </div>
+
+  <p class="footer">
+    Built with vanilla HTML, CSS &amp; JS &middot; Application ID 260801 &middot; Logs stored in <b>IndexedDB</b>.
+  </p>
+</div>
+
+<div class="visually-hidden" aria-live="polite" id="live"></div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   CONSTANTS / META
+   ============================================================ */
+const APP = { id: "260801", name: "Boolean Blitz" };
+const MIN_RATING = 50;
+const MAX_RATING = 10000;
+const INITIAL_RATING = 100;
+const INITIAL_MOMENTUM = 0;
+const LOW_TIME_FRACTION = 0.25;   // trigger low-time warning + sound
+const CRITICAL_TIME_FRACTION = 0.10;
+
+const soundState = { on: true, ctx: null };
+
+/* ============================================================
+   STORAGE
+   localStorage is used for player state; IndexedDB for logs.
+   Both are wrapped in graceful fallbacks so the app keeps
+   working even when storage is unavailable (e.g. sandboxed
+   preview with an opaque origin).
+   ============================================================ */
+const fallbackStore = { data: {} };
+function storeGet(key) {
+  try {
+    const v = localStorage.getItem("bb_" + key);
+    if (v != null) return JSON.parse(v);
+  } catch (e) { /* storage unavailable */ }
+  return (key in fallbackStore.data) ? fallbackStore.data[key] : undefined;
+}
+function storeSet(key, value) {
+  fallbackStore.data[key] = value;
+  try { localStorage.setItem("bb_" + key, JSON.stringify(value)); } catch (e) { /* ignore */ }
+}
+
+/* ---- IndexedDB wrapper for problem_logs ---- */
+const DB_NAME = "boolean_blitz_db";
+const STORE = "problem_logs";
+let db = null;
+let idbAvailable = false;
+
+function openDB() {
+  return new Promise((resolve) => {
+    if (!("indexedDB" in window)) return resolve(false);
+    let req;
+    try {
+      req = indexedDB.open(DB_NAME, 1);
+    } catch (e) { return resolve(false); }
+    req.onupgradeneeded = (ev) => {
+      const d = ev.target.result;
+      if (!d.objectStoreNames.contains(STORE)) {
+        d.createObjectStore(STORE, { keyPath: "id", autoIncrement: true });
+      }
+    };
+    req.onsuccess = () => { db = req.result; idbAvailable = true; resolve(true); };
+    req.onerror = () => { resolve(false); };
+    req.onblocked = () => { resolve(false); };
+  });
+}
+// in-memory fallback for logs
+const memLogs = [];
+
+function logAdd(entry) {
+  if (idbAvailable && db) {
+    try {
+      const tx = db.transaction(STORE, "readwrite");
+      tx.objectStore(STORE).add(entry);
+      tx.oncomplete = () => {};
+    } catch (e) { memLogs.push(entry); }
+  } else {
+    memLogs.push(entry);
+  }
+}
+
+function getAllLogs() {
+  return new Promise((resolve) => {
+    if (idbAvailable && db) {
+      try {
+        const tx = db.transaction(STORE, "readonly");
+        const req = tx.objectStore(STORE).getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => resolve(memLogs.slice());
+        return;
+      } catch (e) { return resolve(memLogs.slice()); }
+    }
+    resolve(memLogs.slice());
+  });
+}
+
+/* ============================================================
+   PLAYER STATE
+   ============================================================ */
+function todayKey() {
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+let state = {
+  rating: INITIAL_RATING,
+  momentum: INITIAL_MOMENTUM,
+  streak: 0,
+  bestStreak: 0,
+  dailyDate: todayKey(),
+  dailyCorrect: 0,
+  soundOn: true,
+};
+function loadState() {
+  const s = storeGet("player");
+  if (s && typeof s === "object") {
+    state.rating = typeof s.rating === "number" ? s.rating : INITIAL_RATING;
+    state.momentum = typeof s.momentum === "number" ? s.momentum : INITIAL_MOMENTUM;
+    state.streak = typeof s.streak === "number" ? s.streak : 0;
+    state.bestStreak = typeof s.bestStreak === "number" ? s.bestStreak : 0;
+    state.dailyDate = typeof s.dailyDate === "string" ? s.dailyDate : todayKey();
+    state.dailyCorrect = typeof s.dailyCorrect === "number" ? s.dailyCorrect : 0;
+    state.soundOn = typeof s.soundOn === "boolean" ? s.soundOn : true;
+  }
+  // roll the "today" counter over if the date changed
+  if (state.dailyDate !== todayKey()) {
+    state.dailyDate = todayKey();
+    state.dailyCorrect = 0;
+  }
+}
+function saveState() {
+  storeSet("player", state);
+}
+
+/* ============================================================
+   SOUND (Web Audio, synthesized — no files needed)
+   ============================================================ */
+function ensureAudio() {
+  if (!soundState.ctx) {
+    const AC = (window.AudioContext || window.webkitAudioContext);
+    if (AC) { try { soundState.ctx = new AC(); } catch (e) { soundState.ctx = null; } }
+  }
+  if (soundState.ctx && soundState.ctx.state === "suspended") {
+    soundState.ctx.resume().catch(() => {});
+  }
+}
+function tone(freq, dur, type, gain, when) {
+  if (!soundState.on || !soundState.ctx) return;
+  try {
+    const t0 = soundState.ctx.currentTime + (when || 0);
+    const osc = soundState.ctx.createOscillator();
+    const g = soundState.ctx.createGain();
+    osc.type = type || "sine";
+    osc.frequency.setValueAtTime(freq, t0);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(gain || 0.2, t0 + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.connect(g).connect(soundState.ctx.destination);
+    osc.start(t0);
+    osc.stop(t0 + dur + 0.02);
+  } catch (e) { /* ignore */ }
+}
+const sfx = {
+  input:   () => { tone(520, 0.07, "triangle", 0.18); },
+  correct: () => { tone(660, 0.12, "sine", 0.22, 0); tone(880, 0.16, "sine", 0.22, 0.10); },
+  wrong:   () => { tone(220, 0.18, "sawtooth", 0.16, 0); tone(150, 0.22, "sawtooth", 0.16, 0.14); },
+  lowTime: () => { tone(980, 0.08, "square", 0.14, 0); tone(980, 0.08, "square", 0.14, 0.16); },
+  pause:   () => { tone(400, 0.09, "sine", 0.15); },
+  resume:  () => { tone(600, 0.09, "sine", 0.15); },
+  next:    () => { tone(500, 0.08, "triangle", 0.15); },
+  start:   () => { tone(523, 0.12, "sine", 0.2, 0); tone(784, 0.14, "sine", 0.2, 0.10); },
+};
+
+/* ============================================================
+   PROBLEM GENERATION
+   depth = max(1, floor(rating/100))
+   AST nodes: {type:'value'} | {type:'not', child} | {type:'bin', op, left, right}
+   value nodes get a random .val = true/false on finalize;
+   bin gets a random .op = 'and'/'or' on finalize.
+   ============================================================ */
+function makeValue() { return { type: "value", val: null }; }
+
+function generateProblem(servedRating) {
+  const depth = Math.max(1, Math.floor(servedRating / 100));
+  let root = makeValue();
+  for (let i = 0; i < depth; i++) {
+    const target = pickRandomValue(root);
+    const kind = Math.random(); // 1/3 unary, 2/3 binary
+    if (kind < 1 / 3) {
+      // ~v : wrap the chosen value in a not
+      root = inflate(root, target, (v) => ({ type: "not", child: v }));
+    } else {
+      // v -> (v + v)
+      root = inflate(root, target, () => ({ type: "bin", op: null, left: makeValue(), right: makeValue() }));
+    }
+  }
+  // finalize substitutions
+  assignSubstitutions(root);
+  const statement = render(root, 0);
+  const evaluated = evaluate(root);
+  const answer = evaluated.value;
+  return {
+    ast: root,
+    depth,
+    servedRating,
+    statement,
+    answer,
+    steps: evaluated.steps,
+  };
+}
+
+// fix function name typo robustness
+function timeFor(sr) {
+  const depth = Math.max(1, Math.floor(sr / 100));
+  const base = 3000;
+  const perRating = 45;
+  const depthBonus = (depth - 1) * 2000;
+  return Math.round(base + sr * perRating + depthBonus);
+}
+
+function pickRandomValue(node) {
+  const vals = [];
+  (function walk(n) {
+    if (!n) return;
+    if (n.type === "value") { vals.push(n); return; }
+    if (n.type === "not") { walk(n.child); return; }
+    walk(n.left); walk(n.right);
+  })(node);
+  return vals[Math.floor(Math.random() * vals.length)];
+}
+
+// Structural replacement: replace `target` node within `node` with `repl`,
+// returning a possibly-new subtree. Avoids mutating nodes in place (which
+// would create self-referential cycles when wrapping a value in a `not`).
+function replaceNode(node, target, repl) {
+  if (node === target) return repl;
+  if (node.type === "value") return node;
+  if (node.type === "not") {
+    const c = replaceNode(node.child, target, repl);
+    if (c === node.child) return node;
+    return { type: "not", child: c };
+  }
+  const l = replaceNode(node.left, target, repl);
+  const r = replaceNode(node.right, target, repl);
+  if (l === node.left && r === node.right) return node;
+  return { type: "bin", op: node.op, left: l, right: r };
+}
+
+// Expand the tree at `target` (a value node) using replacementFn(target).
+function inflate(root, target, replacementFn) {
+  return replaceNode(root, target, replacementFn(target));
+}
+
+function assignSubstitutions(node) {
+  if (!node) return;
+  if (node.type === "value") { node.val = Math.random() < 0.5; return; }
+  if (node.type === "not") { assignSubstitutions(node.child); return; }
+  node.op = Math.random() < 0.5 ? "and" : "or";
+  assignSubstitutions(node.left);
+  assignSubstitutions(node.right);
+}
+
+function prec(n) {
+  if (n.type === "value") return 3;
+  if (n.type === "not") return 2;
+  return 1; // and/or
+}
+function render(node, minP) {
+  let s;
+  if (node.type === "value") s = node.val ? "true" : "false";
+  else if (node.type === "not") s = "not(" + render(node.child, 0) + ")";
+  else s = render(node.left, 2) + " " + node.op + " " + render(node.right, 2);
+  if (prec(node) < minP) s = "(" + s + ")";
+  return s;
+}
+
+function evaluate(node) {
+  if (node.type === "value") { return { value: node.val, steps: [] }; }
+  if (node.type === "not") {
+    const r = evaluate(node.child);
+    const v = !r.value;
+    const steps = r.steps.concat([{ expr: render(node, 0), result: v }]);
+    return { value: v, steps };
+  }
+  const l = evaluate(node.left);
+  const r = evaluate(node.right);
+  const v = node.op === "and" ? (l.value && r.value) : (l.value || r.value);
+  const steps = l.steps.concat(r.steps).concat([{ expr: render(node, 0), result: v }]);
+  return { value: v, steps };
+}
+
+function toPlain(node) {
+  if (node.type === "value") return { type: "value", val: node.val };
+  if (node.type === "not") return { type: "not", child: toPlain(node.child) };
+  return { type: "bin", op: node.op, left: toPlain(node.left), right: toPlain(node.right) };
+}
+
+/* ============================================================
+   RATING / MOMENTUM / SERVED PROBLEM
+   ============================================================ */
+function computeServedRating() {
+  const m = state.momentum;
+  const dev = Math.sign(m) * Math.min(Math.pow(Math.abs(m), 1.5), 50); // %
+  const sr = Math.round(state.rating * (1 + dev / 100));
+  return Math.max(25, sr);
+}
+function ratingDeltaForCorrect(problemRating, timeLeft, totalTime) {
+  const f = 1 + 0.5 * (timeLeft / totalTime);
+  return f * problemRating / state.rating;
+}
+function ratingDeltaForIncorrect(problemRating, timeLeft, totalTime) {
+  const f = 1 + 0.5 * (timeLeft / totalTime);
+  // inverted so a wrong answer ALWAYS lowers the rating
+  return -f * state.rating / problemRating;
+}
+function applyMomentum(success) {
+  if (success) {
+    state.momentum += 1;
+  } else {
+    if (state.momentum > 0) state.momentum = Math.floor(state.momentum / 2);
+    else state.momentum -= 1;
+  }
+}
+
+/* ============================================================
+   SESSION / UI STATE
+   ============================================================ */
+const sessionId = (crypto.randomUUID ? crypto.randomUUID()
+  : String(Date.now()) + "-" + Math.random().toString(16).slice(2));
+let current = null;        // current problem object
+let streakBefore = 0;      // logged streak for current interaction
+let stallThisProblem = 0;  // pause time during this problem (ms)
+let pendingStall = 0;      // result-screen time attributed to next problem
+let pendingStallStart = null;
+let finished = false;
+let playing = false;
+let running = false;       // timer running
+let rafId = null;
+let deadline = 0;
+let totalTime = 0;
+let pausedAccum = 0;
+let pauseStart = null;
+let lowTriggered = false;
+let criticalTriggered = false;
+let autoNextTimer = null;
+let lastAvg = null;
+
+const $ = (id) => document.getElementById(id);
+const screens = { start: $("screen-start"), play: $("screen-play") };
+
+/* ============================================================
+   DOM / STATS
+   ============================================================ */
+function renderStats() {
+  $("statRating").textContent = Math.round(state.rating);
+  $("statMomentum").textContent = state.momentum;
+  $("statToday").textContent = state.dailyCorrect;
+  $("statAvg").textContent = (lastAvg == null ? "—" : Math.round(lastAvg * 100) + "%");
+  $("chipStreak").textContent = "Streak " + state.streak;
+  $("chipMomentum").textContent = state.momentum;
+}
+function applyDeltaColor(el, delta) {
+  el.classList.remove("delta-up", "delta-down");
+  if (delta > 0) el.classList.add("delta-up");
+  else if (delta < 0) el.classList.add("delta-down");
+}
+
+/* ============================================================
+   AVERAGE METRIC OVER LAST 50 SOLVES
+   ============================================================ */
+async function refreshAvg() {
+  const logs = await getAllLogs();
+  const sorted = logs.slice().sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+  const last50 = sorted.slice(-50);
+  if (!last50.length) { lastAvg = null; }
+  else {
+    let sum = 0;
+    for (const l of last50) sum += Number(l.metric || 0);
+    lastAvg = sum / last50.length;
+  }
+  renderStats();
+}
+
+/* ============================================================
+   LOGGING
+   ============================================================ */
+function logInteraction(problem, metric, verdict, timeUsed, timeAllocated, ratingDelta, streak, stall, typingTime, tags) {
+  const entry = {
+    emitter: APP.id,
+    metric: Math.round(metric * 100) / 100,
+    rating: state.rating - ratingDelta,
+    rating_delta: Math.round(ratingDelta * 100) / 100,
+    time_allocated: timeAllocated,
+    time_used: Math.round(timeUsed),
+    verdict: verdict,
+    problem_data: {
+      statement: problem.statement,
+      answer: problem.answer,
+      userAnswer: (problem.userAnswer === undefined || problem.userAnswer === null) ? null : problem.userAnswer,
+      steps: problem.steps,
+      depth: problem.depth,
+      servedRating: problem.servedRating,
+      ast: toPlain(problem.ast),
+    },
+    typing_time: typingTime,
+    stall_time: Math.round(stall),
+    streak: streak,
+    tags: tags,
+    session_id: sessionId,
+    timestamp: Date.now(),
+  };
+  logAdd(entry);
+  // keep console quiet unless storage truly unavailable
+  if (!idbAvailable) console.info("Boolean Blitz: running with in-memory log (IndexedDB unavailable).");
+  return entry;
+}
+
+/* ============================================================
+   TIMER
+   ============================================================ */
+function startTimer(totalMs) {
+  totalTime = totalMs;
+  pausedAccum = 0;
+  pauseStart = null;
+  lowTriggered = false;
+  criticalTriggered = false;
+  const now = performance.now();
+  deadline = now + totalMs;
+  running = true;
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = requestAnimationFrame(tick);
+}
+function tick() {
+  if (!running) return;
+  if (document.hidden) { rafId = requestAnimationFrame(tick); return; }
+  const remaining = Math.max(0, deadline - performance.now());
+  updateClock(remaining);
+  updateBar(remaining);
+  // low-time triggers
+  const x = remaining / totalTime;
+  if (!lowTriggered && x > 0 && x <= LOW_TIME_FRACTION) { lowTriggered = true; sfx.lowTime(); }
+  if (!criticalTriggered && x > 0 && x <= CRITICAL_TIME_FRACTION) { criticalTriggered = true; sfx.lowTime(); }
+  if (remaining <= 0) { handleTimeout(); return; }
+  rafId = requestAnimationFrame(tick);
+}
+function updateClock(remaining) {
+  const s = remaining / 1000;
+  const el = $("clock");
+  // deciseconds: one decimal place
+  el.innerHTML = s.toFixed(1) + "<small>s</small>";
+  el.classList.toggle("low", remaining <= totalTime * CRITICAL_TIME_FRACTION && remaining > 0);
+  $("pausedNote").style.display = "none";
+}
+function updateBar(remaining) {
+  const x = Math.max(0, Math.min(1, remaining / totalTime));
+  const fill = Math.pow(x, 1.7); // purely visual — does NOT affect the real countdown
+  const bar = $("timerFill");
+  bar.style.width = (fill * 100).toFixed(2) + "%";
+  bar.classList.remove("warn", "danger");
+  if (x <= CRITICAL_TIME_FRACTION) bar.classList.add("danger");
+  else if (x <= LOW_TIME_FRACTION) bar.classList.add("warn");
+}
+
+/* ============================================================
+   PROBLEM LIFECYCLE
+   ============================================================ */
+function showScreen(which) {
+  for (const k in screens) screens[k].style.display = "none";
+  screens[which].style.display = (which === "play") ? "flex" : "block";
+}
+
+async function begin() {
+  ensureAudio();
+  sfx.start();
+  showScreen("play");
+  loadNextProblem(true);
+}
+
+function loadNextProblem(isFirst) {
+  clearTimeout(autoNextTimer);
+  const servedRating = computeServedRating();
+  const depth = Math.max(1, Math.floor(servedRating / 100));
+  const timeAllocated = timeFor(servedRating);
+  const problem = generateProblem(servedRating);
+  problem.timeAllocated = timeAllocated;
+  problem.depth = depth;
+
+  // attribution of stall time
+  stallThisProblem = pendingStall;
+  pendingStall = 0;
+  pendingStallStart = null;
+
+  current = problem;
+  streakBefore = state.streak;
+  finished = false;
+
+  $("chipDepth").textContent = "Depth " + depth;
+  $("chipRating").textContent = Math.round(servedRating);
+  $("statement").textContent = problem.statement;
+
+  // reset answer buttons + overlays
+  $("btnTrue").disabled = false;
+  $("btnFalse").disabled = false;
+  $("resultOverlay").classList.remove("show");
+  $("pauseOverlay").classList.remove("show");
+  $("correctFlash").classList.remove("show");
+  $("pausedNote").style.display = "none";
+  $("clock").classList.remove("low");
+  $("timerFill").style.width = "100%";
+  $("timerFill").classList.remove("warn", "danger");
+  $("clock").innerHTML = (timeAllocated / 1000).toFixed(1) + "<small>s</small>";
+  confettiHide();
+
+  playing = true;
+  startTimer(timeAllocated);
+  renderStats();
+}
+
+function stopTimer() {
+  running = false;
+  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+}
+
+function submitAnswer(userBool) {
+  if (!playing || finished || !current) return;
+  const remaining = Math.max(0, deadline - performance.now());
+  handleGrade(userBool, 0, remaining);
+}
+
+function handleTimeout() {
+  if (finished) return;
+  handleGrade(null, 2, 0);
+}
+
+function handleGrade(userBool, verdict, remaining) {
+  finished = true;
+  playing = false;
+  stopTimer();
+  fsound();
+
+  const problem = current;
+  const timeLeft = remaining;
+  const timeUsed = totalTime - timeLeft;
+  const correct = (verdict === 0) ? (userBool === problem.answer) : false;
+  const metric = correct ? 1 : 0;
+
+  // ---- rating & momentum ----
+  let delta;
+  if (correct) {
+    delta = ratingDeltaForCorrect(problem.servedRating, timeLeft, totalTime);
+    applyMomentum(true);
+    if (state.dailyDate === todayKey()) state.dailyCorrect += 1;
+    else { state.dailyDate = todayKey(); state.dailyCorrect = 1; }
+  } else {
+    delta = ratingDeltaForIncorrect(problem.servedRating, timeLeft, totalTime);
+    applyMomentum(false);
+  }
+  state.rating = Math.min(MAX_RATING, Math.max(MIN_RATING, state.rating + delta));
+
+  // ---- streak ----
+  if (correct) { state.streak += 1; state.bestStreak = Math.max(state.bestStreak, state.streak); }
+  else { state.streak = 0; }
+  saveState();
+  renderStats();
+  $("chipStreak").textContent = "Streak " + state.streak;
+  $("chipMomentum").textContent = state.momentum;
+
+  // ---- log ----
+  const typingTime = -1; // single-click answer: not applicable
+  const tags = ["boolean-algebra", "operators", "depth-" + problem.depth];
+  problem.userAnswer = userBool;
+  logInteraction(problem, metric, verdict, timeUsed, totalTime, delta, streakBefore, stallThisProblem, typingTime, tags);
+  applyDeltaColor($("resultDelta"), delta);
+  $("resultDelta").textContent = (delta >= 0 ? "+" : "") + Math.round(delta) + " rating";
+
+  // start counting any in-between time as the next problem's stall
+  pendingStallStart = performance.now();
+
+  if (correct) {
+    // No confirmation screen on a correct answer: show a brief non-blocking
+    // flash, play the success sound, and move straight on to the next problem.
+    $("live").textContent = "Correct. The answer was " + (problem.answer ? "true" : "false") + ".";
+    confettiBurst();
+    flashCorrect();
+    sfx.correct();
+    autoNextTimer = setTimeout(function () { loadNextProblem(false); }, 720);
+  } else {
+    sfx.wrong();
+    if (verdict === 2) sfx.lowTime();
+    $("btnTrue").disabled = true;
+    $("btnFalse").disabled = true;
+    showResult(correct, verdict, problem, delta);
+  }
+}
+
+function fsound() { /* hook reserved for future feedback */ }
+
+function flashCorrect() {
+  const f = $("correctFlash");
+  if (!f) return;
+  f.classList.remove("show");
+  void f.offsetWidth; // force reflow so the CSS animation restarts
+  f.classList.add("show");
+}
+
+function showResult(correct, verdict, problem, delta) {
+  const title = $("resultTitle");
+  const sub = $("resultSub");
+  const sol = $("resultSolution");
+  const stepsEl = $("steps");
+  title.classList.remove("good", "bad", "neutral");
+
+  if (verdict === 2) {
+    title.textContent = "⏰ Time's up";
+    title.classList.add("bad");
+    sub.textContent = "The answer was " + (problem.answer ? "true" : "false") + ".";
+    showSteps(problem, stepsEl);
+    sol.style.display = (problem.steps.length ? "block" : "none");
+  } else if (correct) {
+    title.textContent = "✓ Correct";
+    title.classList.add("good");
+    sub.textContent = "Nicely done — the answer was true.";
+    if (!problem.answer) sub.textContent = "Nicely done — the answer was false.";
+    sol.style.display = "none";
+  } else {
+    title.textContent = "✗ Not quite";
+    title.classList.add("bad");
+    sub.textContent = "The answer was " + (problem.answer ? "true" : "false") + ".";
+    showSteps(problem, stepsEl);
+    sol.style.display = (problem.steps.length ? "block" : "none");
+  }
+
+  // accessibility announcement
+  $("live").textContent = title.textContent + ". " + sub.textContent;
+
+  // confetti only on success & not too flashy
+  if (correct) confettiBurst();
+
+  $("resultOverlay").classList.add("show");
+  $("btnTrue").disabled = true;
+  $("btnFalse").disabled = true;
+
+  // auto-advance quickly on correct; manual on wrong (so they can read)
+  if (correct) autoNextTimer = setTimeout(loadNextProblem, 1600);
+  else $("nextBtn").focus();
+}
+
+function showSteps(problem, stepsEl) {
+  stepsEl.innerHTML = "";
+  problem.steps.forEach((s) => {
+    const div = document.createElement("div");
+    div.className = "step";
+    div.textContent = s.expr + " = ";
+    const b = document.createElement("b");
+    b.textContent = s.result ? "true" : "false";
+    div.appendChild(b);
+    stepsEl.appendChild(div);
+  });
+}
+
+/* ============================================================
+   PAUSE / RESUME
+   ============================================================ */
+function pauseGame() {
+  if (!playing || finished) return;
+  if (pauseStart != null) return; // already paused
+  pauseStart = performance.now();
+  stopTimer();
+  sfx.pause();
+  $("pauseOverlay").classList.add("show");
+  $("pausedNote").style.display = "block";
+}
+function resumeGame() {
+  if (pauseStart == null) return; // not paused
+  const now = performance.now();
+  const pausedMs = now - pauseStart;
+  pauseStart = null;
+  stallThisProblem += pausedMs;
+  pausedAccum += pausedMs;
+  deadline += pausedMs; // extend the real clock
+  $("pauseOverlay").classList.remove("show");
+  $("pausedNote").style.display = "none";
+  sfx.resume();
+  running = true;
+  rafId = requestAnimationFrame(tick);
+}
+function quitGame() {
+  if (current && !finished) {
+    // record quit (verdict 3) for the in-progress problem
+    const tl = Math.max(0, Math.min(totalTime, deadline - performance.now()));
+    const tused = totalTime - tl;
+    const delta = ratingDeltaForIncorrect(current.servedRating, 0, totalTime);
+    applyMomentum(false);
+    state.rating = Math.min(MAX_RATING, Math.max(MIN_RATING, state.rating + delta));
+    state.streak = 0;
+    saveState();
+    current.userAnswer = null;
+    logInteraction(current, 0, 3, tused, totalTime, delta, streakBefore, stallThisProblem, -1, ["boolean-algebra", "operators", "quit"]);
+  }
+  stopTimer();
+  clearTimeout(autoNextTimer);
+  playing = false;
+  finished = false;
+  current = null;
+  showScreen("start");
+  renderStats();
+  $("live").textContent = "Session ended.";
+}
+
+/* ============================================================
+   CONFETTI (canvas — short, subtle, reduced-motion aware)
+   ============================================================ */
+const confettiCanvas = $("confetti");
+const ctxConf = confettiCanvas.getContext("2d");
+let confettiParticles = [];
+let confettiRunning = false;
+function prefersReducedMotion() {
+  return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+function confettiBurst() {
+  if (prefersReducedMotion()) return;
+  const box = confettiCanvas.parentElement.getBoundingClientRect();
+  confettiCanvas.style.display = "block";
+  confettiCanvas.width = box.width;
+  confettiCanvas.height = box.height;
+  const count = 48;
+  confettiParticles = [];
+  for (let i = 0; i < count; i++) {
+    confettiParticles.push({
+      x: box.width * (0.15 + Math.random() * 0.7),
+      y: box.height * 0.05 + Math.random() * 10,
+      vx: (Math.random() - 0.5) * 2.2,
+      vy: 1.6 + Math.random() * 2.4,
+      size: 4 + Math.random() * 5,
+      rot: Math.random() * Math.PI,
+      vr: (Math.random() - 0.5) * 0.2,
+      color: ["#6366f1", "#22c55e", "#f59e0b", "#ec4899", "#06b6d4"][Math.floor(Math.random() * 5)],
+      life: 1,
+    });
+  }
+  if (!confettiRunning) { confettiRunning = true; confettiStep(); }
+  setTimeout(confettiHide, 1400);
+}
+function confettiStep() {
+  confettiCanvas.getContext("2d").clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+  const ctx = confettiCanvas.getContext("2d");
+  let alive = false;
+  for (const p of confettiParticles) {
+    p.vy += 0.10;
+    p.x += p.vx;
+    p.y += p.vy;
+    p.rot += p.vr;
+    p.life -= 0.012;
+    if (p.life <= 0 || p.y > confettiCanvas.height) continue;
+    alive = true;
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, Math.min(1, p.life));
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.rot);
+    ctx.fillStyle = p.color;
+    ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+    ctx.restore();
+  }
+  if (alive) requestAnimationFrame(confettiStep);
+  else confettiRunning = false;
+}
+function confettiHide() {
+  confettiCanvas.style.display = "none";
+  confettiCanvas.getContext("2d").clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+  confettiParticles = [];
+}
+
+/* ============================================================
+   EVENTS
+   ============================================================ */
+function wireEvents() {
+  $("startBtn").addEventListener("click", begin);
+  $("btnTrue").addEventListener("click", () => { ensureAudio(); sfx.input(); submitAnswer(true); });
+  $("btnFalse").addEventListener("click", () => { ensureAudio(); sfx.input(); submitAnswer(false); });
+  $("pauseBtn").addEventListener("click", () => { ensureAudio(); pauseGame(); });
+  $("resumeBtn").addEventListener("click", resumeGame);
+  $("nextBtn").addEventListener("click", () => { sfx.next(); loadNextProblem(false); });
+  $("quitBtn").addEventListener("click", quitGame);
+  $("quitBtn2").addEventListener("click", quitGame);
+
+  $("soundToggle").addEventListener("click", () => {
+    ensureAudio();
+    state.soundOn = !state.soundOn;
+    soundState.on = state.soundOn;
+    saveState();
+    const btn = $("soundToggle");
+    btn.setAttribute("aria-pressed", String(state.soundOn));
+    btn.textContent = state.soundOn ? "🔊" : "🔇";
+    if (state.soundOn) sfx.input();
+  });
+
+  // keyboard controls
+  window.addEventListener("keydown", (e) => {
+    if (e.repeat) return;
+    const tag = (e.target && e.target.tagName ? e.target.tagName : "");
+    const focusable = ["INPUT", "TEXTAREA", "SELECT", "BUTTON"].indexOf(tag) >= 0;
+    const k = e.key.toLowerCase();
+    if (screens.play.style.display !== "none") {
+      if (k === "t" || k === "1") { e.preventDefault(); ensureAudio(); sfx.input(); submitAnswer(true); }
+      else if (k === "f" || k === "2") { e.preventDefault(); ensureAudio(); sfx.input(); submitAnswer(false); }
+      else if (k === "p" || k === "escape") { e.preventDefault(); if (pauseStart == null && !finished) pauseGame(); else if (pauseStart != null) resumeGame(); }
+      else if ((k === "enter") && finished && !autoNextTimer) { e.preventDefault(); sfx.next(); loadNextProblem(false); }
+    } else if (screens.start.style.display !== "none") {
+      if (k === "spacebar" || k === " ") { e.preventDefault(); begin(); }
+      if (k === "enter") { e.preventDefault(); begin(); }
+    }
+  });
+
+  // stop the loop when tab hidden so it doesn't keep spinning; time is real
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden && running) { /* leave deadline; recompute on return */ }
+    if (!document.hidden) { /* resume tick */ if (running && !rafId) rafId = requestAnimationFrame(tick); else if (running) { if (rafId) cancelAnimationFrame(rafId); rafId = requestAnimationFrame(tick); } }
+  });
+
+  // best-effort "quit" log on tab close while a problem is live
+  window.addEventListener("pagehide", () => {
+    if (current && !finished) {
+      try {
+        const tl = Math.max(0, deadline - performance.now());
+        const tused = totalTime - tl;
+        current.userAnswer = null;
+        logInteraction(current, 0, 3, tused, totalTime, 0, streakBefore, stallThisProblem, -1, ["boolean-algebra", "operators", "quit"]);
+      } catch (err) {}
+    }
+  });
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+async function init() {
+  loadState();
+  soundState.on = state.soundOn;
+  const btn = $("soundToggle");
+  btn.setAttribute("aria-pressed", String(state.soundOn));
+  btn.textContent = state.soundOn ? "🔊" : "🔇";
+  await openDB();
+  await refreshAvg();
+  renderStats();
+  wireEvents();
+  showScreen("start");
+}
+
+init();
+</script>
+</body>
+</html>
