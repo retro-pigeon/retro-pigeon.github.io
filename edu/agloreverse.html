@@ -1225,7 +1225,7 @@
       state.problem = problem;
       state.problemRating = serveProblemRating(state.userRating, state.momentum);
       // Difficulty via time pressure: time_seconds = 4000 / problem_rating
-      state.timeAllocatedMs = (4000 / state.problemRating) * 1000;
+      state.timeAllocatedMs = (40) * 1000;
       state.timeLeftMs = state.timeAllocatedMs;
       state.problemStartedAt = Date.now();
       state.pausedTotalMs = 0;
