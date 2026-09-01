@@ -14,6 +14,8 @@
     The time bar's fullness is x^1.7 (purely visual); the real countdown,
     timeouts and ratings use raw timestamps only.
   - Depth mapping (developer's choice): depth = clamp(round((problem_rating - 50)/150), 0, 10).
+  - Half of the exercises use compound assignment operators (+=, -=, *=)
+    instead of the explicit form (var = var + n) — per-problem 50% coin flip.
   - Momentum-based problem rating with ±50% cap, |x|^1.5 deviation.
   - All interactions are logged to IndexedDB "problem_logs" (store "logs").
   - Fully usable without sound: every audio cue has a visible equivalent.
@@ -156,6 +158,7 @@ h1{font-size:clamp(40px,9vw,56px);margin:0;letter-spacing:1px}
     <ul class="howto">
       <li><span class="ico" aria-hidden="true">📖</span><span>Read the little program.</span></li>
       <li><span class="ico" aria-hidden="true">🧠</span><span>Follow what the variable holds after every line.</span></li>
+      <li><span class="ico" aria-hidden="true">✨</span><span>Shorthand: <code>x += 4</code> means <code>x = x + 4</code> — same for <code>-=</code> and <code>*=</code>.</span></li>
       <li><span class="ico" aria-hidden="true">⌨️</span><span>Enter what <code>cout</code> prints before the time runs out.</span></li>
       <li><span class="ico" aria-hidden="true">👀</span><span>Beware: some variable names look like numbers (<code>l</code>, <code>o</code>, <code>O</code>)!</span></li>
     </ul>
@@ -268,8 +271,12 @@ function pickVarName(){
    Constraints: int literals are 1-digit; every intermediate value is an
    integer in [0, 99] (max 2 digits, never negative). Each operation has a
    25% chance: reset / + / − / *. (The literal 0 is a valid 1-digit literal;
-   a reset always picks a *different* value when possible.) */
-function generateProblem(depth){
+   a reset always picks a *different* value when possible.)
+   Half of the exercises are generated in compound-assignment notation
+   (var += n instead of var = var + n): `compound` is a per-problem 50% coin
+   flip when not passed explicitly. Resets keep the plain `var = n;` form. */
+function generateProblem(depth, compound){
+  if (compound === undefined) compound = Math.random() < 0.5;
   const v = pickVarName();
   const name = v.name;
   let value = 1 + randInt(9); // initial int literal, 1-digit (kept 1..9 to avoid a degenerate 0 start)
@@ -296,13 +303,14 @@ function generateProblem(depth){
     steps.push({ op, lit });
     trace.push(value);
   }
-  return { name, kind: v.kind, depth, steps, trace, answer: value };
+  return { name, kind: v.kind, depth, steps, trace, answer: value, compound: !!compound };
 }
 
-function lineText(name, st){
+function lineText(name, st, compound){
   if (st.op === "init") return "int " + name + " = " + st.lit + ";";
   if (st.op === "set")  return name + " = " + st.lit + ";";
   const sym = st.op === "add" ? "+" : (st.op === "sub" ? "-" : "*");
+  if (compound) return name + " " + sym + "= " + st.lit + ";";
   return name + " = " + name + " " + sym + " " + st.lit + ";";
 }
 
@@ -668,7 +676,7 @@ function nextProblem(){
 function renderProblem(p, pr, idx){
   metaEl.textContent = "Problem " + idx + " · depth " + p.depth + " · problem rating " + pr;
   codeEl.innerHTML =
-    p.steps.map((st) => '<div class="cl">' + lineHtml(p.name, st) + "</div>").join("") +
+    p.steps.map((st) => '<div class="cl">' + lineHtml(p.name, st, p.compound) + "</div>").join("") +
     '<div class="cl cl-out">' + coutHtml(p.name) + "</div>";
   answerEl.textContent = "?";
   answerEl.classList.remove("filled", "flash-bad", "wiggle");
@@ -679,13 +687,15 @@ function renderProblem(p, pr, idx){
 function esc(s){
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
-function lineHtml(name, st){
+function lineHtml(name, st, compound){
   const n = '<span class="vn">' + esc(name) + "</span>";
   if (st.op === "init")
     return '<span class="kw">int</span> ' + n + ' <span class="op">=</span> <span class="num">' + st.lit + '</span><span class="op">;</span>';
   if (st.op === "set")
     return n + ' <span class="op">=</span> <span class="num">' + st.lit + '</span><span class="op">;</span>';
   const sym = st.op === "add" ? "+" : (st.op === "sub" ? "-" : "*");
+  if (compound)
+    return n + ' <span class="op">' + sym + '=</span> <span class="num">' + st.lit + '</span><span class="op">;</span>';
   return n + ' <span class="op">=</span> ' + n + ' <span class="op">' + sym + '</span> <span class="num">' + st.lit + '</span><span class="op">;</span>';
 }
 function coutHtml(name){
@@ -693,7 +703,7 @@ function coutHtml(name){
 }
 function traceHtml(p){
   let rows = p.steps.map((st, i) =>
-    '<div class="tr"><span class="tr-line">' + esc(lineText(p.name, st)) + "</span>" +
+    '<div class="tr"><span class="tr-line">' + esc(lineText(p.name, st, p.compound)) + "</span>" +
     '<span class="tr-val">' + (st.op === "init" ? esc(p.name) + " = " + p.trace[i] : p.trace[i]) + "</span></div>"
   ).join("");
   rows += '<div class="tr tr-out"><span class="tr-line">cout &lt;&lt; ' + esc(p.name) + ';</span><span class="tr-val">prints ' + p.answer + "</span></div>";
@@ -870,7 +880,7 @@ function logInteraction(o){
   const p = App.problem;
   if (!p) return;
   try {
-    const statement = p.steps.map((st) => lineText(p.name, st)).concat(["cout << " + p.name + ";"]).join("\n");
+    const statement = p.steps.map((st) => lineText(p.name, st, p.compound)).concat(["cout << " + p.name + ";"]).join("\n");
     const ops = [];
     p.steps.forEach((st) => { if (st.op !== "init" && ops.indexOf(st.op) < 0) ops.push(st.op); });
     const rec = {
@@ -886,6 +896,7 @@ function logInteraction(o){
         variable: p.name,
         variable_kind: p.kind,                            // word | letter | tripup
         depth: p.depth,
+        notation: p.compound ? "compound" : "plain",
         steps: JSON.parse(JSON.stringify(p.steps)),
         trace: p.trace.slice(),
         answer: p.answer,
@@ -896,7 +907,7 @@ function logInteraction(o){
         ? Math.max(0, Math.round(App.lastInputAt - App.firstInputAt)) : -1, // -1 = no input events
       stall_time: Math.round((p.stallBase || 0) + (T.pausedMs || 0)),       // intermediary screens + pause time
       streak: (p.streakPre !== undefined) ? p.streakPre : S.streak,         // correct streak BEFORE this interaction
-      tags: ["algovar", "timed", "var-trace", "depth-" + p.depth, "var-" + p.kind].concat(ops.map((op) => "op-" + op)),
+      tags: ["algovar", "timed", "var-trace", "depth-" + p.depth, "var-" + p.kind, p.compound ? "compound-ops" : "plain-ops"].concat(ops.map((op) => "op-" + op)),
       session_id: App.session.id,
       ts: Date.now()
     };
