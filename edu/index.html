@@ -1,3 +1,168 @@
-1000 - <a href="./boolean-blitz.html">Boolean</a>
-500 - <a href="./algovar.html">Algo 1</a>
-500 - <a href="./algorev.html">Algo 2</a>
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Directory</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top, #1c1c2b 0%, #0d0d13 45%, #08080c 100%);
+      color: #f5f5f7;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 40px 20px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 850px;
+    }
+
+    header {
+      margin-bottom: 30px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(2rem, 5vw, 3rem);
+      letter-spacing: -0.04em;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: #8f8f9d;
+      font-size: 1rem;
+    }
+
+    .directory {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 22px;
+      min-height: 110px;
+
+      text-decoration: none;
+      color: inherit;
+
+      background: rgba(255, 255, 255, 0.045);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      border-radius: 16px;
+
+      transition:
+        transform 0.2s ease,
+        border-color 0.2s ease,
+        background 0.2s ease,
+        box-shadow 0.2s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      background: rgba(255, 255, 255, 0.075);
+      border-color: rgba(140, 120, 255, 0.55);
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3);
+    }
+
+    .card-content {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 650;
+    }
+
+    .card-description {
+      color: #858592;
+      font-size: 0.85rem;
+    }
+
+    .arrow {
+      color: #777786;
+      font-size: 1.4rem;
+      transition: transform 0.2s ease, color 0.2s ease;
+    }
+
+    .card:hover .arrow {
+      color: #a89cff;
+      transform: translateX(4px);
+    }
+
+    @media (max-width: 500px) {
+      body {
+        padding: 25px 15px;
+      }
+
+      .directory {
+        grid-template-columns: 1fr;
+      }
+
+      .card {
+        min-height: 95px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="container">
+    <header>
+      <h1>Directory</h1>
+      <p class="subtitle">Choose a tool to get started.</p>
+    </header>
+
+    <nav class="directory" aria-label="Directory">
+      <a class="card" href="./boolean-blitz.html">
+        <div class="card-content">
+          <span class="card-title">Boolean</span>
+          <span class="card-description">Boolean logic practice</span>
+        </div>
+        <span class="arrow">→</span>
+      </a>
+
+      <a class="card" href="./algovar.html">
+        <div class="card-content">
+          <span class="card-title">Algo Check</span>
+          <span class="card-description">Check your algorithms</span>
+        </div>
+        <span class="arrow">→</span>
+      </a>
+
+      <a class="card" href="./aglorev.html">
+        <div class="card-content">
+          <span class="card-title">Algo Typing</span>
+          <span class="card-description">Practice algorithm typing</span>
+        </div>
+        <span class="arrow">→</span>
+      </a>
+
+      <a class="card" href="./div.html">
+        <div class="card-content">
+          <span class="card-title">Divisibility</span>
+          <span class="card-description">Divisibility practice</span>
+        </div>
+        <span class="arrow">→</span>
+      </a>
+    </nav>
+  </main>
+</body>
+</html>
+```
