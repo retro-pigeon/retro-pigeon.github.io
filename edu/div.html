@@ -226,7 +226,7 @@
           <div class="hint" id="hint">For positive numbers, C integer division drops the decimal part.</div>
           <form class="answer-form" id="answerForm" autocomplete="off">
             <label class="sr-only" for="answerInput">Your answer</label>
-            <input id="answerInput" class="answer-input" type="text" inputmode="numeric" pattern="[0-9]*" aria-describedby="hint feedback" placeholder="?" />
+            <input id="answerInput" class="answer-input" type="text" inputmode="none" readonly aria-readonly="true" aria-describedby="hint feedback" placeholder="?" />
             <button class="submit" type="submit">Check</button>
           </form>
           <div class="feedback" id="feedback" role="status" aria-live="polite">Ready.</div>
@@ -351,9 +351,9 @@
     }
 
     function timeForRating(rating) {
-      // Fourth-grader friendly curve: ~23s at rating 50, ~19s at 100, ~7.5s at 500, approaching 5s for very high ratings.
-      const ms = 5000 + 21000 * Math.exp(-rating / 250);
-      return Math.round(clamp(ms, 5000, 25000));
+      // Fourth-grader friendly curve, multiplied by 5: ~116s at rating 50, ~91s at 100, ~43s at 500, approaching 25s for very high ratings.
+      const ms = (5000 + 21000 * Math.exp(-rating / 250)) * 5;
+      return Math.round(clamp(ms, 25000, 125000));
     }
 
     function loadReviewQueue() {
@@ -461,7 +461,6 @@
       setFeedback('New problem. Type your answer.', '');
       updateStats();
       tick();
-      setTimeout(() => els.answerInput.focus(), 0);
     }
 
     function elapsedMs() {
@@ -500,6 +499,27 @@
       const now = performance.now();
       if (current.firstInputAt === null) current.firstInputAt = now;
       current.lastInputAt = now;
+    }
+
+    function appendDigit(digit) {
+      if (!current || !accepting) return;
+      recordInputMoment();
+      els.answerInput.value = (els.answerInput.value + digit).slice(0, 4);
+      sound('input');
+    }
+
+    function backspaceAnswer() {
+      if (!current || !accepting) return;
+      recordInputMoment();
+      els.answerInput.value = els.answerInput.value.slice(0, -1);
+      sound('input');
+    }
+
+    function clearAnswer() {
+      if (!current || !accepting) return;
+      recordInputMoment();
+      els.answerInput.value = '';
+      sound('input');
     }
 
     function submitAnswer() {
@@ -577,18 +597,21 @@
 
       updateStats();
       if (success) {
-        setFeedback(`Correct! ${current.statement.replace('?', current.answer)}`, 'good');
+        setFeedback(`Correct. Answer: ${current.answer}`, 'good');
+        els.statement.textContent = current.statement.replace('?', current.answer);
         sound('correct');
         confetti();
-        setTimeout(startProblem, 650);
+        setTimeout(startProblem, 1200);
       } else if (verdict === 2) {
-        setFeedback(`Time is up. Answer: ${current.answer}`, 'bad');
+        setFeedback(`Time is up. Correct answer: ${current.answer}`, 'bad');
+        els.statement.textContent = current.statement.replace('?', current.answer);
         sound('wrong');
-        setTimeout(startProblem, 1100);
+        setTimeout(startProblem, 1600);
       } else {
-        setFeedback(`Not quite. Answer: ${current.answer}`, 'bad');
+        setFeedback(`Not quite. Correct answer: ${current.answer}`, 'bad');
+        els.statement.textContent = current.statement.replace('?', current.answer);
         sound('wrong');
-        setTimeout(startProblem, 1000);
+        setTimeout(startProblem, 1600);
       }
     }
 
@@ -699,19 +722,24 @@
     function clearPendingQuit() { localStorage.removeItem(LS_PREFIX + 'pending_quit'); }
 
     els.answerForm.addEventListener('submit', e => { e.preventDefault(); submitAnswer(); });
-    els.answerInput.addEventListener('input', () => { recordInputMoment(); sound('input'); els.answerInput.value = els.answerInput.value.replace(/\D+/g, '').slice(0, 4); });
+    els.answerInput.addEventListener('focus', () => els.answerInput.blur());
+    els.answerInput.addEventListener('input', () => { els.answerInput.value = els.answerInput.value.replace(/\D+/g, '').slice(0, 4); });
     document.querySelectorAll('.mode').forEach(btn => btn.addEventListener('click', () => setMode(btn.dataset.mode)));
     document.querySelectorAll('.numpad button').forEach(btn => btn.addEventListener('click', () => {
       const key = btn.dataset.key;
       if (!accepting) return;
       if (key === 'enter') return submitAnswer();
-      recordInputMoment();
-      if (key === 'clear') els.answerInput.value = '';
-      else if (key === 'back') els.answerInput.value = els.answerInput.value.slice(0, -1);
-      else els.answerInput.value = (els.answerInput.value + key).slice(0, 4);
-      sound('input');
-      els.answerInput.focus();
+      if (key === 'clear') return clearAnswer();
+      if (key === 'back') return backspaceAnswer();
+      appendDigit(key);
     }));
+    document.addEventListener('keydown', e => {
+      if (!current || !accepting) return;
+      if (/^[0-9]$/.test(e.key)) { e.preventDefault(); appendDigit(e.key); }
+      else if (e.key === 'Backspace') { e.preventDefault(); backspaceAnswer(); }
+      else if (e.key === 'Delete') { e.preventDefault(); clearAnswer(); }
+      else if (e.key === 'Enter') { e.preventDefault(); submitAnswer(); }
+    });
     els.soundBtn.addEventListener('click', () => { muted = !muted; localStorage.setItem(LS_PREFIX + 'muted', muted ? '1' : '0'); updateStats(); if (!muted) sound('input'); });
     window.addEventListener('pagehide', savePendingQuit);
     window.addEventListener('beforeunload', savePendingQuit);
