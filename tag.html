@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Caiet Găsit — Andrei Iacob</title>
+<meta name="description" content="Ai găsit caietul lui Andrei Iacob de la Colegiul Național de Informatică Tudor Vianu">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<style>
+  :root {
+    --primary: #87ac4c;
+    --primary-dark: #6f8f3d;
+    --primary-light: #e8f0db;
+    --primary-ghost: rgba(135, 172, 76, 0.12);
+    --bg: #f5f7f0;
+    --card: #ffffff;
+    --text: #1a2211;
+    --text-muted: #6b7a5a;
+    --border: #e4e9d9;
+    --radius: 20px;
+  }
+  * { box-sizing: border-box; margin:0; padding:0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* subtle grid pattern */
+  body::before {
+    content:"";
+    position: fixed;
+    inset:0;
+    background-image: radial-gradient(var(--border) 1px, transparent 1px);
+    background-size: 28px 28px;
+    opacity: 0.6;
+    pointer-events:none;
+    z-index:-1;
+  }
+  .container {
+    width: 100%;
+    max-width: 480px;
+  }
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    box-shadow: 0 8px 30px rgba(40, 60, 20, 0.08), 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .card-top {
+    height: 6px;
+    background: var(--primary);
+    width: 100%;
+  }
+  .card-content {
+    padding: 32px 28px 28px;
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--primary-ghost);
+    color: var(--primary-dark);
+    border: 1px solid rgba(135,172,76,0.22);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 6px 12px;
+    border-radius: 999px;
+    margin-bottom: 20px;
+  }
+  .badge-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--primary);
+    border-radius: 50%;
+    box-shadow: 0 0 0 4px rgba(135,172,76,0.18);
+  }
+  .icon-wrap {
+    width: 56px;
+    height: 56px;
+    background: var(--primary);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    box-shadow: 0 8px 20px rgba(135,172,76,0.35);
+  }
+  .icon-wrap svg { width: 28px; height: 28px; color: white; }
+
+  h1 {
+    font-size: 28px;
+    line-height: 1.15;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 12px;
+  }
+  h1 span {
+    color: var(--primary-dark);
+  }
+  .subject-line {
+    font-size: 17px;
+    line-height: 1.5;
+    color: var(--text-muted);
+    margin-bottom: 24px;
+  }
+  .subject-line strong {
+    color: var(--text);
+    font-weight: 700;
+  }
+  .code-pill {
+    display: inline-flex;
+    align-items: center;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 13px;
+    font-weight: 700;
+    background: #f1f4ea;
+    border: 1px solid var(--border);
+    color: var(--primary-dark);
+    padding: 4px 10px;
+    border-radius: 8px;
+    letter-spacing: 0.04em;
+    margin-left: 2px;
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 4px 0 24px;
+  }
+
+  .message {
+    background: #fbfcf8;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 18px;
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 24px;
+  }
+  .message p + p { margin-top: 10px; }
+
+  .contact-label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+
+  .contact-grid {
+    display: grid;
+    gap: 12px;
+  }
+  .contact-btn {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: white;
+    text-decoration: none;
+    color: var(--text);
+    transition: all 0.18s ease;
+  }
+  .contact-btn:hover {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(135,172,76,0.18);
+  }
+  .contact-btn.primary {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+    box-shadow: 0 8px 20px rgba(135,172,76,0.32);
+  }
+  .contact-btn.primary:hover {
+    background: var(--primary-dark);
+    border-color: var(--primary-dark);
+  }
+  .contact-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .contact-btn .contact-icon {
+    background: var(--primary-ghost);
+    color: var(--primary-dark);
+  }
+  .contact-btn.primary .contact-icon {
+    background: rgba(255,255,255,0.18);
+    color: white;
+  }
+  .contact-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1.2;
+  }
+  .contact-meta span:first-child {
+    font-size: 12px;
+    font-weight: 600;
+    opacity: 0.7;
+    letter-spacing: 0.02em;
+    margin-bottom: 3px;
+  }
+  .contact-meta span:last-child {
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .contact-action {
+    margin-left: auto;
+    opacity: 0.4;
+  }
+
+  .footer {
+    margin-top: 20px;
+    text-align: center;
+    padding: 0 12px;
+  }
+  .footer-school {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+  .footer-note {
+    font-size: 12px;
+    color: #9aa88a;
+    margin-top: 8px;
+  }
+
+  @media (max-width: 420px) {
+    .card-content { padding: 26px 20px 22px; }
+    h1 { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="card-top"></div>
+      <div class="card-content">
+        <div class="badge"><span class="badge-dot"></span> CAIET GĂSIT</div>
+
+        <div class="icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M8 7h8"/><path d="M8 11h8"/></svg>
+        </div>
+
+        <h1>Mulțumesc că ai găsit <span>caietul!</span></h1>
+        
+        <div class="subject-line" id="subjectLine">
+          Acesta este caietul de <strong id="subjectName">...</strong> <span class="code-pill" id="codePill">--</span> al lui <strong>Andrei Iacob</strong>.
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="message">
+          <p>Acest caiet este important pentru școală. Dacă l-ai găsit, te rog să mă contactezi — îți voi fi recunoscător și mă ocup eu să îl recuperez cât mai repede.</p>
+          <p style="color: var(--text-muted); font-size: 13.5px;">Colegiul Național de Informatică Tudor Vianu — Clasa E</p>
+        </div>
+
+        <div class="contact-label">Contactează-mă</div>
+        <div class="contact-grid">
+          <a class="contact-btn primary" href="tel:+40775372790" id="phoneBtn">
+            <div class="contact-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            </div>
+            <div class="contact-meta">
+              <span>Telefon / WhatsApp</span>
+              <span>+40 775 372 790</span>
+            </div>
+            <div class="contact-action">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+            </div>
+          </a>
+
+          <a class="contact-btn" href="mailto:retropigeondeveloper@gmail.com" id="emailBtn">
+            <div class="contact-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            </div>
+            <div class="contact-meta">
+              <span>Email</span>
+              <span>retropigeondeveloper@gmail.com</span>
+            </div>
+            <div class="contact-action">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+            </div>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="footer-school">ROMÂNIA • COLEGIUL NAȚIONAL DE INFORMATICĂ TUDOR VIANU<br>ANDREI IACOB — CLASS E 2026-2030</div>
+      <div class="footer-note" id="footerNote">Cod scanat: --</div>
+    </div>
+  </div>
+
+<script>
+  const SUBJECTS = {
+    MAT: "Matematică",
+    INF: "Informatică",
+    ALG: "Algoritmică",
+    CHM: "Chimie",
+    MUZ: "Educație muzicală",
+    ART: "Educație plastică",
+    FIZ: "Fizică",
+    GEO: "Geografie",
+    IST: "Istorie",
+    ENG: "Engleză",
+    ROU: "Limba română",
+    LOG: "Logică",
+    TIC: "Tehnologia informației și a comunicațiilor",
+    BIO: "Biologie",
+    DRG: "Dirigenție",
+    EFS: "Educație Fizică și Sport",
+    REL: "Religie"
+  };
+
+  function getParam(name) {
+    const url = new URL(window.location.href);
+    return url.searchParams.get(name);
+  }
+
+  function parseCode(raw) {
+    if (!raw) return null;
+    const code = raw.trim().toUpperCase();
+    const short = code.substring(0,3);
+    return { full: code, short: short, name: SUBJECTS[short] || null };
+  }
+
+  const rawDs = getParam('ds');
+  const parsed = parseCode(rawDs);
+
+  const subjectNameEl = document.getElementById('subjectName');
+  const codePillEl = document.getElementById('codePill');
+  const subjectLineEl = document.getElementById('subjectLine');
+  const footerNoteEl = document.getElementById('footerNote');
+
+  if (parsed && parsed.full) {
+    const displayName = parsed.name || parsed.short || parsed.full;
+    subjectNameEl.textContent = displayName;
+    codePillEl.textContent = parsed.full;
+    document.title = `Caiet găsit — ${displayName} (${parsed.full})`;
+    footerNoteEl.textContent = `Cod scanat: ${parsed.full} • Mulțumesc pentru ajutor!`;
+    
+    // personalize message slightly
+    if (parsed.name) {
+      subjectLineEl.innerHTML = `Acesta este caietul de <strong>${parsed.name}</strong> <span class="code-pill">${parsed.full}</span> al lui <strong>Andrei Iacob</strong>.`;
+    }
+  } else {
+    subjectNameEl.textContent = "școală";
+    codePillEl.textContent = "NECUNOSCUT";
+    subjectLineEl.innerHTML = `Se pare că ai scanat un caiet de-al lui <strong>Andrei Iacob</strong> <span class="code-pill">fără cod</span>.`;
+    footerNoteEl.textContent = "Cod lipsă — contactează-mă oricum!";
+  }
+
+  // Add subject to email subject
+  const emailBtn = document.getElementById('emailBtn');
+  if (parsed) {
+    const subject = encodeURIComponent(`[Caiet găsit] ${parsed.full} - ${parsed.name || ''}`.trim());
+    const body = encodeURIComponent(`Bună Andrei,\n\nAm găsit caietul tău de ${parsed.name || parsed.full} (${parsed.full}).\n\nTe rog să mă contactezi pentru a ți-l returna.\n\nMulțumesc!`);
+    emailBtn.href = `mailto:retropigeondeveloper@gmail.com?subject=${subject}&body=${body}`;
+  }
+</script>
+</body>
+</html>
