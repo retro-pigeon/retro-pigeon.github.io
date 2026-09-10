@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Packing - Orarul lui Andrei</title>
+<meta name="theme-color" content="#87ac4c">
+<style>
+  :root {
+    --primary: #87ac4c;
+    --primary-dark: #6e8f3d;
+    --primary-light: #e8f0db;
+    --primary-ghost: rgba(135,172,76,0.12);
+    --bg: #f6f7f1;
+    --card: #ffffff;
+    --text: #1e2814;
+    --muted: #75846a;
+    --border: #e3e8d8;
+    --danger: #e85d4a;
+    --radius: 18px;
+    --shadow: 0 8px 30px rgba(45,60,30,0.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", Segoe UI, Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height:100vh;
+    padding-bottom: 90px;
+    -webkit-font-smoothing: antialiased;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;
+    background-image: radial-gradient(var(--border) 1px, transparent 1px);
+    background-size: 28px 28px; opacity:0.5; z-index:-1; pointer-events:none;
+  }
+  .header{
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top:0; z-index:20;
+    backdrop-filter: blur(12px);
+  }
+  .header-inner{
+    max-width: 1100px; margin:0 auto; padding: 14px 20px;
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+  }
+  .brand{display:flex;align-items:center;gap:12px}
+  .brand-logo{
+    width:40px;height:40px;background:var(--primary);border-radius:12px;
+    display:flex;align-items:center;justify-content:center;color:white;font-weight:900;
+    box-shadow:0 6px 16px rgba(135,172,76,0.35);
+  }
+  .brand-text b{display:block;font-size:15px;line-height:1.1}
+  .brand-text span{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.04em}
+  .day-switcher{display:flex;gap:6px;overflow:auto;padding:2px}
+  .day-btn{
+    padding:8px 14px;border-radius:999px;border:1px solid var(--border);
+    background:var(--card);font-size:13px;font-weight:700;cursor:pointer;
+    white-space:nowrap;transition:.15s;
+  }
+  .day-btn.active{background:var(--primary);color:white;border-color:var(--primary);box-shadow:0 4px 12px rgba(135,172,76,.3)}
+  .day-btn.today{border-color:var(--primary);}
+
+  .container{max-width:1100px;margin:0 auto;padding:20px;display:grid;gap:20px}
+  .alert{
+    border-radius:14px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start;
+    font-size:14px;line-height:1.5;font-weight:500;
+    border:1px solid;
+  }
+  .alert.warn{background:#fff7e6;border-color:#f5d79a;color:#7a4d00}
+  .alert.info{background:var(--primary-light);border-color:rgba(135,172,76,.3);color:#2f4318}
+  .alert strong{font-weight:800}
+  .alert.hidden{display:none}
+
+  .grid{
+    display:grid;grid-template-columns:1.15fr .85fr;gap:20px;
+  }
+  @media(max-width:900px){.grid{grid-template-columns:1fr}}
+
+  .card{
+    background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+    box-shadow:var(--shadow);overflow:hidden;
+  }
+  .card-head{
+    padding:18px 20px 14px;border-bottom:1px solid var(--border);
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+  }
+  .card-head h2{font-size:15px;font-weight:800;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+  .card-head small{font-size:12px;color:var(--muted);font-weight:600}
+  .card-body{padding:16px 20px 20px}
+
+  .progress{
+    height:8px;background:#eef2e6;border-radius:999px;overflow:hidden;margin-bottom:16px;
+  }
+  .progress-bar{height:100%;background:var(--primary);width:0%;transition:.4s ease}
+
+  .list{display:flex;flex-direction:column;gap:10px}
+  .item{
+    display:flex;align-items:center;gap:12px;padding:12px 12px;
+    border-radius:12px;border:1px solid var(--border);background:#fbfcf8;
+    transition:.15s;
+  }
+  .item.done{background:var(--primary-light);border-color:rgba(135,172,76,.35)}
+  .item-icon{
+    width:38px;height:38px;border-radius:10px;background:white;border:1px solid var(--border);
+    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;
+    flex-shrink:0;
+  }
+  .item.done .item-icon{background:var(--primary);color:white;border-color:var(--primary)}
+  .item-main{flex:1;min-width:0}
+  .item-main b{font-size:14px;display:block;line-height:1.2}
+  .item-main span{font-size:12px;color:var(--muted)}
+  .item-check{
+    width:26px;height:26px;border-radius:50%;border:2px solid var(--border);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .item.done .item-check{background:var(--primary);border-color:var(--primary);color:white}
+
+  .scanner-box{
+    background:#0e1510;border-radius:16px;overflow:hidden;position:relative;
+    aspect-ratio: 4/3; min-height: 280px;
+  }
+  #reader{width:100%;height:100%}
+  #reader video{width:100%!important;height:100%!important;object-fit:cover}
+  .scanner-overlay{
+    position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:rgba(14,21,16,.72);color:white;padding:20px;text-align:center;gap:12px;
+  }
+  .btn{
+    padding:12px 18px;border-radius:12px;border:1px solid var(--border);
+    font-weight:700;font-size:14px;cursor:pointer;transition:.15s;
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .btn-primary{background:var(--primary);color:white;border-color:var(--primary);box-shadow:0 6px 16px rgba(135,172,76,.35)}
+  .btn-primary:hover{background:var(--primary-dark)}
+  .btn-ghost{background:white}
+  .btn-ghost:hover{border-color:var(--primary);background:var(--primary-light)}
+  .btn-small{padding:8px 12px;font-size:12px;border-radius:10px}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+
+  .timetable{display:flex;flex-direction:column;gap:8px}
+  .tt-row{
+    display:flex;gap:12px;padding:10px 12px;border-radius:12px;border:1px solid transparent;
+    align-items:center;font-size:13px;
+  }
+  .tt-row.active{background:var(--primary-light);border-color:rgba(135,172,76,.3)}
+  .tt-time{font-weight:800;font-family:ui-monospace,monospace;font-size:12px;min-width:92px}
+  .tt-subj{flex:1}
+  .tt-subj b{font-size:13px}
+  .tt-subj span{font-size:11px;color:var(--muted);margin-left:6px}
+  .tt-status{font-size:11px;font-weight:700;padding:4px 8px;border-radius:999px;background:white;border:1px solid var(--border)}
+
+  .manual-row{display:flex;gap:8px;margin-top:12px}
+  .manual-row input{
+    flex:1;padding:12px 14px;border-radius:12px;border:1px solid var(--border);
+    font-size:14px;font-weight:600;
+  }
+  .toast{
+    position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(120px);
+    background:var(--text);color:white;padding:12px 18px;border-radius:999px;
+    font-size:13px;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,.2);
+    transition:.35s cubic-bezier(.34,1.56,.64,1);z-index:100;max-width:90vw;text-align:center;
+  }
+  .toast.show{transform:translateX(-50%) translateY(0)}
+  .footer-note{text-align:center;font-size:11px;color:var(--muted);margin-top:10px;line-height:1.5}
+
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:700px){.two-col{grid-template-columns:1fr}}
+
+  .pill{
+    display:inline-flex;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:800;
+    letter-spacing:.04em;background:var(--primary-light);color:var(--primary-dark);border:1px solid rgba(135,172,76,.25)
+  }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-inner">
+    <div class="brand">
+      <div class="brand-logo">AI</div>
+      <div class="brand-text">
+        <b>Andrei Iacob — CLASS E</b>
+        <span>CNITV • Packing & Orar</span>
+      </div>
+    </div>
+    <div class="day-switcher" id="daySwitcher"></div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="alert info hidden" id="sportAlert">
+    <span style="font-size:20px">🏃</span>
+    <div><strong>Reminder Sport!</strong> Azi ai Educație Fizică și Sport. Nu uita echipamentul sportiv, adidașii și sticla de apă!</div>
+  </div>
+  <div class="alert warn hidden" id="frenchAlert">
+    <span style="font-size:20px">🇫🇷</span>
+    <div><strong>Reminder Franceză!</strong> Azi ai Franceză. Verifică caietul de Franceză și temele!</div>
+  </div>
+  <div class="alert info hidden" id="notifAlert">
+    <span style="font-size:20px">🔔</span>
+    <div><strong>Notificări dezactivate.</strong> Activează notificările ca să primești alertă cu 10 minute înainte de fiecare oră. <button class="btn btn-small btn-primary" style="margin-left:8px" onclick="enableNotifications()">Activează</button></div>
+  </div>
+
+  <div class="grid">
+    <!-- LEFT -->
+    <div style="display:flex;flex-direction:column;gap:20px">
+      <div class="card">
+        <div class="card-head">
+          <h2>📚 De împachetat azi <span class="pill" id="dayPill">LUNI</span></h2>
+          <small id="progressText">0/0</small>
+        </div>
+        <div class="card-body">
+          <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+          <div class="two-col">
+            <div>
+              <div style="font-size:12px;font-weight:800;letter-spacing:.06em;color:var(--muted);margin-bottom:10px">DE SCANAT</div>
+              <div class="list" id="toScanList"></div>
+            </div>
+            <div>
+              <div style="font-size:12px;font-weight:800;letter-spacing:.06em;color:var(--muted);margin-bottom:10px">SCANATE ✅</div>
+              <div class="list" id="scannedList"></div>
+              <div id="emptyScanned" style="font-size:13px;color:var(--muted);padding:10px">Nimic scanat încă. Deschide camera și scanează QR-ul de pe etichete.</div>
+            </div>
+          </div>
+          <div class="controls">
+            <button class="btn btn-ghost btn-small" onclick="clearScanned()">Resetează scanările</button>
+            <button class="btn btn-ghost btn-small" onclick="markAllManually()">Bifează tot manual</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>🕜 Orar <span id="orartitle"></span></h2>
+          <small>13:30 start • 50' oră + 10' pauză</small>
+        </div>
+        <div class="card-body">
+          <div class="timetable" id="timetable"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div style="display:flex;flex-direction:column;gap:20px">
+      <div class="card">
+        <div class="card-head">
+          <h2>📷 Scanner QR</h2>
+          <small id="scannerStatus">Oprit</small>
+        </div>
+        <div class="card-body" style="padding:0">
+          <div class="scanner-box">
+            <div id="reader"></div>
+            <div class="scanner-overlay" id="scannerOverlay">
+              <div style="font-size:40px">📷</div>
+              <div style="font-weight:800;font-size:16px">Scanner caiete</div>
+              <div style="font-size:13px;opacity:.8;max-width:260px">Scanează eticheta cu QR de pe caiet. Aplicația verifică automat dacă materia e în orarul de azi.</div>
+              <button class="btn btn-primary" onclick="startScanner()">Pornește camera</button>
+              <div style="font-size:11px;opacity:.6">Folosește https (GitHub Pages) pentru acces la cameră</div>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div style="display:flex;gap:8px;align-items:center;justify-content:space-between">
+            <div style="font-size:12px;font-weight:700;color:var(--muted)">ULTIMA SCANARE</div>
+            <div id="lastScan" style="font-size:13px;font-weight:700">—</div>
+          </div>
+          <div class="manual-row">
+            <input id="manualInput" placeholder="Introdu cod manual ex: MAT00" maxlength="20">
+            <button class="btn btn-primary" onclick="handleManual()">Adaugă</button>
+          </div>
+          <div class="footer-note">QR-ul duce la <code>retro-pigeon.github.io/tag.html?ds=MAT00</code> — noi citim parametrul <code>ds</code></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>🔔 Notificări ore</h2>
+          <small id="notifStatus">—</small>
+        </div>
+        <div class="card-body">
+          <div id="notifList" style="display:flex;flex-direction:column;gap:8px"></div>
+          <div class="controls">
+            <button class="btn btn-ghost btn-small" onclick="enableNotifications()">Activează notificări</button>
+            <button class="btn btn-ghost btn-small" onclick="testNotification()">Test</button>
+          </div>
+          <div class="footer-note">Primești alertă cu 10 minute înainte de fiecare oră. Lasă pagina deschisă dimineața.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-note" style="margin-top:10px">
+    Orar: Luni: Mate, Info, Info, Sport, Chimie • Marți: Mate, Muzică/Arte, Fizică, Geo, Istorie, Info, Info • Miercuri: Mate, Engleză, Română, Chimie, Religie, Logică • Joi: Mate, Fizică, Română, TIC, Franceză • Vineri: Mate, Română, Fizică, Engleză, Bio<br>
+    Tema culorii: #87ac4c • Andrei Iacob — CLASS E • CNITV
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+const SUBJECTS = {
+  MAT: { name: "Matematică", full: "Matematică", color: "#4a7c59" },
+  INF: { name: "Informatică", full: "Informatică", color: "#2b6cb0" },
+  ALG: { name: "Algoritmică", full: "Algoritmică", color: "#805ad5" },
+  CHM: { name: "Chimie", full: "Chimie", color: "#d69e2e" },
+  MUZ: { name: "Educație muzicală", full: "Educație muzicală", color: "#e53e3e" },
+  ART: { name: "Educație plastică", full: "Educație plastică", color: "#dd6b20" },
+  FIZ: { name: "Fizică", full: "Fizică", color: "#3182ce" },
+  GEO: { name: "Geografie", full: "Geografie", color: "#38a169" },
+  IST: { name: "Istorie", full: "Istorie", color: "#975a16" },
+  ENG: { name: "Engleză", full: "Engleză", color: "#e53e3e" },
+  ROU: { name: "Limba română", full: "Limba română", color: "#d53f8c" },
+  REL: { name: "Religie", full: "Religie", color: "#744210" },
+  LOG: { name: "Logică", full: "Logică", color: "#2d3748" },
+  TIC: { name: "TIC", full: "Tehnologia informației", color: "#319795" },
+  BIO: { name: "Biologie", full: "Biologie", color: "#38a169" },
+  EFS: { name: "Sport", full: "Educație Fizică și Sport", color: "#e53e3e" },
+  FRA: { name: "Franceză", full: "Limba franceză", color: "#3182ce" },
+};
+
+// Orar Luni=1 ... Vineri=5
+const ORAR_RAW = {
+  1: ["MAT", "INF", "INF", "EFS", "CHM"],
+  2: ["MAT", "MUZ_ART", "FIZ", "GEO", "IST", "INF", "INF"],
+  3: ["MAT", "ENG", "ROU", "CHM", "REL", "LOG"],
+  4: ["MAT", "FIZ", "ROU", "TIC", "FRA"],
+  5: ["MAT", "ROU", "FIZ", "ENG", "BIO"],
+};
+
+const DAY_NAMES = {1:"LUNI",2:"MARȚI",3:"MIERCURI",4:"JOI",5:"VINERI",6:"SÂMBĂTĂ",0:"DUMINICĂ"};
+const DAY_NAMES_SHORT = {1:"Lun",2:"Mar",3:"Mie",4:"Joi",5:"Vin"};
+
+let currentDay = new Date().getDay(); // 0-6
+// For demo, if weekend, default to Monday
+let selectedDay = (currentDay>=1 && currentDay<=5) ? currentDay : 1;
+
+let html5QrCode = null;
+let scannedCodes = new Set();
+let notifTimers = [];
+
+function getLessonTimesForDate(date){
+  const times = [];
+  let hour = 13, minute = 30;
+  for(let i=0;i<7;i++){
+    const start = new Date(date); start.setHours(hour, minute, 0, 0);
+    const end = new Date(start); end.setMinutes(end.getMinutes()+50);
+    times.push({start, end});
+    // next start +60
+    minute += 60;
+    if(minute>=60){ hour+= Math.floor(minute/60); minute = minute%60; }
+  }
+  return times;
+}
+
+function getPackingRequirements(day){
+  const raw = ORAR_RAW[day] || [];
+  // Build groups
+  const groups = [];
+  const seen = new Set();
+  raw.forEach(code=>{
+    if(code==="MUZ_ART"){
+      const key = "MUZ_ART";
+      if(!seen.has(key)){
+        seen.add(key);
+        groups.push({ id: key, options: ["MUZ","ART"], label: "Muzică / Arte", required: true });
+      }
+    } else {
+      if(!seen.has(code)){
+        seen.add(code);
+        const subj = SUBJECTS[code];
+        groups.push({ id: code, options: [code], label: subj ? subj.name : code, required: true });
+      }
+    }
+  });
+  return groups;
+}
+
+function getStorageKey(date){
+  const d = date || new Date();
+  // key per selected day + date string to avoid mixing weeks? Use ISO date + day
+  const iso = d.toISOString().split('T')[0];
+  return `scanned-${iso}-${selectedDay}`;
+}
+
+function loadScanned(){
+  const key = getStorageKey();
+  try{
+    const raw = localStorage.getItem(key);
+    if(raw){ scannedCodes = new Set(JSON.parse(raw)); }
+    else { scannedCodes = new Set(); }
+  }catch(e){ scannedCodes = new Set(); }
+}
+
+function saveScanned(){
+  const key = getStorageKey();
+  localStorage.setItem(key, JSON.stringify([...scannedCodes]));
+}
+
+function isGroupSatisfied(group){
+  return group.options.some(opt => scannedCodes.has(opt) || [...scannedCodes].some(c=>c.startsWith(opt)));
+}
+
+function parseQrContent(decodedText){
+  // decodedText may be URL like https://retro-pigeon.github.io/tag.html?ds=MAT00
+  // or just MAT00
+  try{
+    if(decodedText.includes("://")){
+      const url = new URL(decodedText);
+      const ds = url.searchParams.get("ds");
+      if(ds) return ds.trim().toUpperCase();
+    }
+  }catch(e){}
+  // fallback: extract pattern XXX00
+  const m = decodedText.trim().toUpperCase().match(/([A-Z]{3}\d{2})/);
+  if(m) return m[1];
+  // or just 3 letters
+  const m2 = decodedText.trim().toUpperCase().match(/\b([A-Z]{3})\b/);
+  if(m2) return m2[1]+"00";
+  return decodedText.trim().toUpperCase();
+}
+
+function extractShort(fullCode){
+  if(!fullCode) return null;
+  const m = fullCode.match(/^([A-Z]{3})/);
+  return m ? m[1] : null;
+}
+
+function showToast(msg, type="info"){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = type==="error" ? "#c53030" : type==="success" ? "#276749" : "#1e2814";
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 3000);
+}
+
+function render(){
+  const dayName = DAY_NAMES[selectedDay] || "";
+  document.getElementById('dayPill').textContent = dayName;
+  document.getElementById('orartitle').textContent = dayName;
+  
+  // day switcher
+  const switcher = document.getElementById('daySwitcher');
+  switcher.innerHTML = "";
+  for(let d=1; d<=5; d++){
+    const btn = document.createElement('button');
+    btn.className = "day-btn" + (d===selectedDay ? " active" : "") + (d===currentDay ? " today" : "");
+    btn.textContent = (d===currentDay ? "Azi • " : "") + DAY_NAMES_SHORT[d];
+    btn.onclick = ()=>{ selectedDay=d; loadScanned(); render(); checkReminders(); scheduleNotificationsUI(); };
+    switcher.appendChild(btn);
+  }
+
+  loadScanned();
+  const groups = getPackingRequirements(selectedDay);
+  const toScan = groups.filter(g=>!isGroupSatisfied(g));
+  const scannedGroups = groups.filter(g=>isGroupSatisfied(g));
+
+  // progress
+  const total = groups.length;
+  const done = scannedGroups.length;
+  document.getElementById('progressText').textContent = `${done}/${total} gata`;
+  document.getElementById('progressBar').style.width = total ? `${(done/total)*100}%` : "0%";
+
+  // toScanList
+  const toScanEl = document.getElementById('toScanList');
+  toScanEl.innerHTML = "";
+  toScan.forEach(g=>{
+    const div = document.createElement('div');
+    div.className = "item";
+    const subj = SUBJECTS[g.options[0]] || {name:g.label};
+    const iconText = g.id==="MUZ_ART" ? "M/A" : g.options[0];
+    div.innerHTML = `
+      <div class="item-icon">${iconText}</div>
+      <div class="item-main"><b>${g.label}</b><span>${g.options.join(" sau ")} • de scanat</span></div>
+      <div class="item-check">○</div>
+    `;
+    toScanEl.appendChild(div);
+  });
+  if(toScan.length===0){
+    toScanEl.innerHTML = `<div style="padding:12px;background:var(--primary-light);border:1px dashed var(--primary);border-radius:12px;font-size:13px;font-weight:700;color:var(--primary-dark)">🎉 Toate caietele pentru azi sunt scanate! Ești gata de școală.</div>`;
+  }
+
+  // scannedList
+  const scannedEl = document.getElementById('scannedList');
+  scannedEl.innerHTML = "";
+  const emptyEl = document.getElementById('emptyScanned');
+  if(scannedGroups.length===0){
+    emptyEl.style.display="block";
+  } else {
+    emptyEl.style.display="none";
+    scannedGroups.forEach(g=>{
+      const div = document.createElement('div');
+      div.className = "item done";
+      const iconText = g.id==="MUZ_ART" ? "M/A" : g.options[0];
+      // find which option was actually scanned
+      const scannedOpt = g.options.find(opt=> [...scannedCodes].some(c=>c.startsWith(opt))) || g.options[0];
+      const subj = SUBJECTS[scannedOpt];
+      div.innerHTML = `
+        <div class="item-icon">${iconText}</div>
+        <div class="item-main"><b>${g.label}</b><span>${scannedOpt} • scanat ✅</span></div>
+        <div class="item-check">✓</div>
+      `;
+      scannedEl.appendChild(div);
+    });
+  }
+
+  // also show extra scanned that are not required
+  const extra = [...scannedCodes].filter(code=>{
+    const short = extractShort(code);
+    return !groups.some(g=>g.options.includes(short));
+  });
+  extra.forEach(code=>{
+    const short = extractShort(code);
+    const subj = SUBJECTS[short];
+    const div = document.createElement('div');
+    div.className = "item done";
+    div.style.opacity="0.7";
+    div.innerHTML = `
+      <div class="item-icon">${short||"?"}</div>
+      <div class="item-main"><b>${subj?subj.name:code}</b><span>extra • nu e nevoie azi</span></div>
+      <div class="item-check">✓</div>
+    `;
+    scannedEl.appendChild(div);
+  });
+
+  // timetable
+  const ttEl = document.getElementById('timetable');
+  ttEl.innerHTML="";
+  const raw = ORAR_RAW[selectedDay] || [];
+  const times = getLessonTimesForDate(new Date());
+  const now = new Date();
+  raw.forEach((code,i)=>{
+    const t = times[i];
+    const isNow = selectedDay===currentDay && now>=t.start && now<=t.end;
+    const subj = code==="MUZ_ART" ? {name:"Muzică / Arte"} : SUBJECTS[code];
+    const row = document.createElement('div');
+    row.className = "tt-row" + (isNow ? " active" : "");
+    const timeStr = `${String(t.start.getHours()).padStart(2,'0')}:${String(t.start.getMinutes()).padStart(2,'0')} - ${String(t.end.getHours()).padStart(2,'0')}:${String(t.end.getMinutes()).padStart(2,'0')}`;
+    row.innerHTML = `
+      <div class="tt-time">${timeStr}</div>
+      <div class="tt-subj"><b>${subj?subj.name:code}</b><span>${code==="MUZ_ART"?"MUZ/ART":code}</span></div>
+      <div class="tt-status">${isNow?"ACUM":`Ora ${i+1}`}</div>
+    `;
+    ttEl.appendChild(row);
+  });
+}
+
+function checkReminders(){
+  const raw = ORAR_RAW[selectedDay] || [];
+  const hasSport = raw.includes("EFS");
+  const hasFrench = raw.includes("FRA");
+  document.getElementById('sportAlert').classList.toggle('hidden', !hasSport);
+  document.getElementById('frenchAlert').classList.toggle('hidden', !hasFrench);
+
+  // notif alert
+  if(Notification && Notification.permission!=="granted"){
+    document.getElementById('notifAlert').classList.remove('hidden');
+  } else {
+    document.getElementById('notifAlert').classList.add('hidden');
+  }
+}
+
+async function startScanner(){
+  const overlay = document.getElementById('scannerOverlay');
+  const status = document.getElementById('scannerStatus');
+  try{
+    if(!html5QrCode){
+      html5QrCode = new Html5Qrcode("reader");
+    }
+    overlay.style.display="none";
+    status.textContent="Pornire...";
+    await html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: {width: 250, height: 250} },
+      (decodedText, decodedResult)=>{
+        handleScan(decodedText);
+      },
+      (errorMessage)=>{}
+    );
+    status.textContent="Scanare activă";
+  }catch(err){
+    console.error(err);
+    overlay.style.display="flex";
+    status.textContent="Eroare cameră";
+    showToast("Nu pot accesa camera. Folosește HTTPS și permite accesul.", "error");
+  }
+}
+
+function stopScanner(){
+  if(html5QrCode){
+    html5QrCode.stop().then(()=>{
+      document.getElementById('scannerOverlay').style.display="flex";
+      document.getElementById('scannerStatus').textContent="Oprit";
+    }).catch(()=>{});
+  }
+}
+
+function handleScan(decodedText){
+  const fullCode = parseQrContent(decodedText);
+  const short = extractShort(fullCode);
+  if(!short){ showToast("QR invalid: "+decodedText, "error"); return; }
+  document.getElementById('lastScan').textContent = fullCode + (SUBJECTS[short] ? ` • ${SUBJECTS[short].name}` : "");
+  
+  const groups = getPackingRequirements(selectedDay);
+  const relevant = groups.some(g=>g.options.includes(short));
+  
+  if(scannedCodes.has(short) || [...scannedCodes].some(c=>c.startsWith(short))){
+    showToast(`${short} deja scanat`, "info");
+    return;
+  }
+
+  scannedCodes.add(fullCode); // store full
+  // also add short for easier check
+  scannedCodes.add(short);
+  saveScanned();
+  render();
+
+  if(relevant){
+    // haptic
+    if(navigator.vibrate) navigator.vibrate(120);
+    showToast(`✅ ${SUBJECTS[short]?.name || short} scanat corect!`, "success");
+  } else {
+    showToast(`ℹ️ Ai scanat ${short} dar azi nu ai nevoie de el`, "info");
+  }
+}
+
+function handleManual(){
+  const input = document.getElementById('manualInput');
+  const val = input.value.trim();
+  if(!val) return;
+  handleScan(val);
+  input.value="";
+}
+
+function clearScanned(){
+  if(confirm("Resetezi toate scanările pentru azi?")){
+    scannedCodes.clear();
+    saveScanned();
+    render();
+    showToast("Scanări resetate", "info");
+  }
+}
+
+function markAllManually(){
+  const groups = getPackingRequirements(selectedDay);
+  groups.forEach(g=>{ scannedCodes.add(g.options[0]); });
+  saveScanned();
+  render();
+  showToast("Toate bifate manual", "success");
+}
+
+// Notifications
+function enableNotifications(){
+  if(!("Notification" in window)){
+    showToast("Browserul nu suportă notificări", "error");
+    return;
+  }
+  Notification.requestPermission().then(perm=>{
+    if(perm==="granted"){
+      showToast("Notificări activate!", "success");
+      checkReminders();
+      scheduleNotifications();
+    } else {
+      showToast("Permisiune refuzată", "error");
+    }
+  });
+}
+
+function testNotification(){
+  if(Notification.permission!=="granted"){
+    enableNotifications(); return;
+  }
+  new Notification("Test - Orar Andrei", { body: "În 10 minute începe: Matematică (13:30)", icon: "" });
+}
+
+function scheduleNotifications(){
+  // clear previous
+  notifTimers.forEach(t=>clearTimeout(t));
+  notifTimers=[];
+  const listEl = document.getElementById('notifList');
+  listEl.innerHTML="";
+  const statusEl = document.getElementById('notifStatus');
+  
+  if(Notification.permission!=="granted"){
+    statusEl.textContent="Dezactivate";
+    listEl.innerHTML=`<div style="font-size:13px;color:var(--muted)">Activează notificările pentru alerte înainte de ore.</div>`;
+    return;
+  }
+  statusEl.textContent="Active";
+
+  const raw = ORAR_RAW[selectedDay] || [];
+  const times = getLessonTimesForDate(new Date());
+  const now = new Date();
+
+  raw.forEach((code,i)=>{
+    const t = times[i];
+    const notifTime = new Date(t.start); notifTime.setMinutes(notifTime.getMinutes()-10);
+    const subj = code==="MUZ_ART" ? {name:"Muzică / Arte"} : SUBJECTS[code];
+    const diff = notifTime - now;
+    
+    const row = document.createElement('div');
+    row.style.cssText="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:#fbfcf8;font-size:13px";
+    const timeStr = `${String(notifTime.getHours()).padStart(2,'0')}:${String(notifTime.getMinutes()).padStart(2,'0')}`;
+    const isPast = diff<0;
+    row.innerHTML=`<span><b>${subj?subj.name:code}</b> • notif la ${timeStr}</span><span style="font-size:11px;font-weight:700;color:${isPast?'#a0aec0':'var(--primary-dark)'}">${isPast?'trecut':'programat'}</span>`;
+    listEl.appendChild(row);
+
+    if(diff>0 && selectedDay===currentDay){
+      const timer = setTimeout(()=>{
+        new Notification(`În 10 minute: ${subj?subj.name:code}`, {
+          body: `Ora ${i+1} începe la ${String(t.start.getHours()).padStart(2,'0')}:${String(t.start.getMinutes()).padStart(2,'0')} — ${subj?subj.name:code}`,
+          tag: `lesson-${i}`
+        });
+        // also toast in page
+        showToast(`🔔 În 10 min: ${subj?subj.name:code}`, "info");
+      }, diff);
+      notifTimers.push(timer);
+    }
+  });
+}
+
+function scheduleNotificationsUI(){
+  scheduleNotifications();
+}
+
+// init
+loadScanned();
+render();
+checkReminders();
+scheduleNotificationsUI();
+
+// auto-check every minute for active lesson highlight
+setInterval(()=>{ if(selectedDay===currentDay) render(); }, 60000);
+
+// handle Enter on manual input
+document.getElementById('manualInput').addEventListener('keydown', e=>{
+  if(e.key==="Enter") handleManual();
+});
+</script>
+</body>
+</html>
