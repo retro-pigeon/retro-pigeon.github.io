@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Column Drill</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper: #EAF1F7;
+    --grid-line: #C7D6E5;
+    --ink: #1F3352;
+    --ink-soft: #5B7290;
+    --accent: #2B6CB0;
+    --accent-soft: #D9E9FA;
+    --correct: #2F8F5B;
+    --correct-soft: #DCF3E7;
+    --wrong: #C0392B;
+    --carry: #C23B3B;
+    --card-bg: #FFFFFF;
+    --box-size: 46px;
+    --box-gap: 6px;
+  }
+  .card.boss{
+    --accent: #B3392B;
+    --accent-soft: #FBE3DF;
+    --carry: #8A2A20;
+    --card-bg: #FFFBFA;
+  }
+  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html,body{
+    margin:0; padding:0; height:100%;
+    font-family:'Space Grotesk', sans-serif;
+    color: var(--ink);
+  }
+  body{
+    background-color: var(--paper);
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size: 22px 22px;
+    min-height:100%;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    padding: 14px 8px 28px;
+    user-select: none;
+  }
+  .app-wrap{ width:100%; max-width: 420px; }
+  .card{
+    background: var(--card-bg);
+    border: 2px solid var(--ink);
+    border-radius: 10px;
+    padding: 14px 12px 16px;
+    position: relative;
+    box-shadow: 4px 4px 0 rgba(31,51,82,0.12);
+    transition: box-shadow .2s ease, border-color .2s ease;
+  }
+  .card.boss{ box-shadow: 4px 4px 0 rgba(179,57,43,0.18); }
+
+  .worksheet-no{
+    position:absolute; top:-10px; right:14px;
+    background: var(--ink); color: var(--paper);
+    font-family:'JetBrains Mono', monospace;
+    font-size: 11px; padding: 3px 8px; border-radius: 4px;
+    letter-spacing: 0.5px;
+  }
+  .card.boss .worksheet-no{ background: var(--wrong); }
+
+  .boss-stamp{
+    position: absolute; top: 10px; right: 12px;
+    border: 2.5px solid var(--wrong); color: var(--wrong);
+    font-weight: 700; font-size: 12px; letter-spacing: 1px;
+    padding: 3px 9px; border-radius: 6px;
+    transform: rotate(6deg);
+    opacity: 0; pointer-events:none;
+    transition: opacity .3s ease;
+  }
+  .card.boss .boss-stamp{ opacity: 1; }
+
+  h1{ font-size: 19px; margin: 4px 0 2px; font-weight: 700; }
+  .subline{ font-size: 12.5px; color: var(--ink-soft); margin: 0 0 12px; }
+
+  .mode-toggle{
+    display:flex; border: 1.5px solid var(--ink); border-radius: 8px;
+    overflow:hidden; margin-bottom: 12px;
+  }
+  .mode-toggle button{
+    flex:1; border:none; background: transparent; color: var(--ink);
+    font-family:'Space Grotesk', sans-serif; font-size: 13.5px; font-weight: 600;
+    padding: 10px 4px; cursor:pointer; touch-action: manipulation;
+  }
+  .mode-toggle button + button{ border-left: 1.5px solid var(--ink); }
+  .mode-toggle button.active{ background: var(--ink); color: var(--paper); }
+
+  .stats-row{
+    display:flex; justify-content: space-between; align-items:center;
+    font-size: 12px; color: var(--ink-soft); margin-bottom: 10px;
+    font-family:'JetBrains Mono', monospace;
+  }
+
+  .timer-wrap{ margin-bottom: 12px; }
+  .timer-bar-track{
+    height: 8px; border-radius: 5px; background: var(--accent-soft);
+    border: 1.5px solid var(--ink); overflow:hidden;
+  }
+  .timer-bar-fill{
+    height: 100%; background: var(--accent); width:100%;
+    transition: width .18s linear, background .3s ease;
+  }
+  .timer-bar-fill.low{ background: var(--wrong); }
+  .timer-label{
+    font-family:'JetBrains Mono', monospace; font-size: 11px;
+    color: var(--ink-soft); margin-top: 3px; text-align:right;
+  }
+
+  .sheet-scroll{ overflow-x:auto; padding-bottom: 2px; }
+  .sheet-grid{
+    display:grid;
+    grid-template-columns: 28px repeat(var(--cols), var(--box-size));
+    gap: var(--box-gap);
+    align-items:center;
+    justify-content:center;
+    margin: 0 auto;
+    width: max-content;
+  }
+  .row{ display:contents; }
+
+  .op-cell{
+    display:flex; align-items:center; justify-content:center;
+    font-size: calc(var(--box-size) * 0.42);
+    font-weight: 700; color: var(--ink);
+    font-family:'JetBrains Mono', monospace;
+  }
+  .tick-cell{
+    width: var(--box-size); height: 26px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .tick-box{
+    width: 22px; height: 22px; border: 2px solid var(--ink-soft);
+    border-radius: 5px; cursor:pointer; position:relative;
+    background: transparent; touch-action: manipulation; padding:0;
+  }
+  .tick-box.checked{ border-color: var(--carry); }
+  .tick-box.checked::after{
+    content:''; position:absolute; left:4px; top:0px;
+    width:10px; height:6px; border-left:2.5px solid var(--carry);
+    border-bottom:2.5px solid var(--carry);
+    transform: rotate(-45deg);
+  }
+  .tick-box.auto-pop{ animation: pop .35s ease; }
+  @keyframes pop{ 0%{transform:scale(1);} 45%{transform:scale(1.35);} 100%{transform:scale(1);} }
+
+  .digit-cell{
+    width: var(--box-size); height: var(--box-size);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'JetBrains Mono', monospace;
+    font-size: calc(var(--box-size) * 0.42);
+    font-weight: 500; color: var(--ink);
+    border-radius: 4px;
+    transition: background .2s ease;
+  }
+  .digit-cell.blank{ visibility:hidden; }
+  .digit-cell.active-col{ background: var(--accent-soft); }
+  .digit-cell.done-col{ background: rgba(47,143,91,0.08); }
+
+  .rule-cell{ grid-column: 1 / -1; border-top: 3px solid var(--ink); margin-top: 2px; height: 0; }
+
+  .ans-box{
+    width: var(--box-size); height: calc(var(--box-size) * 0.92);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'JetBrains Mono', monospace;
+    font-size: calc(var(--box-size) * 0.42); font-weight:600;
+    color: var(--accent); background: var(--accent-soft);
+    border: none; border-bottom: 3px solid var(--ink);
+    border-radius: 4px 4px 0 0; cursor:pointer;
+    touch-action: manipulation;
+  }
+  .ans-box.active-slot{ background:#fff; box-shadow: inset 0 0 0 2.5px var(--accent); }
+  .ans-box.revealed{ color: var(--correct); background: var(--correct-soft); box-shadow:none; }
+  .ans-box.hidden-cell{ visibility:hidden; pointer-events:none; }
+  .ans-box.shake-wrong{ animation: shake .4s ease; color: var(--wrong); background: #FBE3DF; }
+  @keyframes shake{
+    0%,100%{ transform: translateX(0); }
+    20%{ transform: translateX(-4px); }
+    40%{ transform: translateX(4px); }
+    60%{ transform: translateX(-3px); }
+    80%{ transform: translateX(3px); }
+  }
+
+  .caption{
+    min-height: 18px; text-align:center; font-size: 12.5px;
+    color: var(--ink-soft); margin-top: 12px; font-style: italic;
+  }
+
+  .numpad{
+    display:grid; grid-template-columns: repeat(3,1fr); gap: 8px;
+    margin-top: 14px;
+  }
+  .num-key{
+    padding: 15px 0; border-radius: 10px; border: 2px solid var(--ink);
+    background: #fff; color: var(--ink);
+    font-family:'JetBrains Mono', monospace; font-size: 20px; font-weight: 600;
+    cursor:pointer; touch-action: manipulation;
+  }
+  .num-key:active{ background: var(--accent-soft); }
+  .num-key-back{ color: var(--wrong); border-color: var(--wrong); }
+  .num-key-back:active{ background: #FBE3DF; }
+  .num-key-enter{ color: #fff; background: var(--correct); border-color: var(--correct); }
+  .num-key-enter:active{ background: #256b45; }
+  .numpad.disabled{ opacity: .45; pointer-events: none; }
+
+  .flash-correct{ animation: flashGreen .5s ease; }
+  @keyframes flashGreen{
+    0%{ box-shadow: 0 0 0 0 rgba(47,143,91,0.6); }
+    100%{ box-shadow: 0 0 0 14px rgba(47,143,91,0); }
+  }
+
+  .hint{ font-size: 11.5px; color: var(--ink-soft); margin-top: 12px; line-height:1.5; text-align:center; }
+
+  @media (prefers-reduced-motion: reduce){ *{ animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="app-wrap">
+  <div class="card" id="card">
+    <div class="worksheet-no" id="worksheetNo">No. 001</div>
+    <div class="boss-stamp">BOSS</div>
+    <h1>Column Drill</h1>
+    <p class="subline" id="subline">Start from the ones column and work left, just like in your head.</p>
+
+    <div class="mode-toggle">
+      <button id="modeAddBtn" class="active">Addition</button>
+      <button id="modeSubBtn">Subtraction</button>
+    </div>
+
+    <div class="stats-row">
+      <span id="statsLeft">Solved 0 · Streak 0</span>
+      <span id="statsRight">Best 0</span>
+    </div>
+
+    <div class="timer-wrap">
+      <div class="timer-bar-track"><div class="timer-bar-fill" id="timerFill"></div></div>
+      <div class="timer-label" id="timerLabel">45s</div>
+    </div>
+
+    <div class="sheet-scroll">
+      <div class="sheet-grid" id="sheetGrid"></div>
+    </div>
+
+    <div class="caption" id="caption" aria-live="polite"></div>
+
+    <div class="numpad" id="numpad">
+      <button class="num-key" data-key="1">1</button>
+      <button class="num-key" data-key="2">2</button>
+      <button class="num-key" data-key="3">3</button>
+      <button class="num-key" data-key="4">4</button>
+      <button class="num-key" data-key="5">5</button>
+      <button class="num-key" data-key="6">6</button>
+      <button class="num-key" data-key="7">7</button>
+      <button class="num-key" data-key="8">8</button>
+      <button class="num-key" data-key="9">9</button>
+      <button class="num-key num-key-back" data-key="back">⌫</button>
+      <button class="num-key" data-key="0">0</button>
+      <button class="num-key num-key-enter" data-key="enter">✓</button>
+    </div>
+
+    <p class="hint">Tap a tick box above a column if you carry or borrow — it's scratch space, not graded. The highlighted box shows where your next digit goes.</p>
+  </div>
+</div>
+
+<script>
+(function(){
+  // ---------- state ----------
+  let mode = 'add';
+  let current = null;
+  let totalShown = 0;
+  let sinceBoss = 0;
+  let bossThreshold = randInt(5,6);
+  let retryQueue = []; // {problem, dueAt}
+  let idCounter = 1;
+  let solved = 0, streak = 0, best = 0;
+  let timerInterval = null;
+  let timeLeft = 0, timeLimit = 0;
+  let busy = false;
+  let tickState = [];
+  let order = [];          // typing order, right-to-left: [{type:'digit',col}, ..., {type:'overflow'}?]
+  let activeSlotPos = 0;
+
+  // ---------- dom refs ----------
+  const card = document.getElementById('card');
+  const worksheetNo = document.getElementById('worksheetNo');
+  const subline = document.getElementById('subline');
+  const modeAddBtn = document.getElementById('modeAddBtn');
+  const modeSubBtn = document.getElementById('modeSubBtn');
+  const statsLeft = document.getElementById('statsLeft');
+  const statsRight = document.getElementById('statsRight');
+  const timerFill = document.getElementById('timerFill');
+  const timerLabel = document.getElementById('timerLabel');
+  const sheetGrid = document.getElementById('sheetGrid');
+  const caption = document.getElementById('caption');
+  const numpad = document.getElementById('numpad');
+
+  // ---------- helpers ----------
+  function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+  function randNDigit(n){
+    const min = Math.pow(10, n-1);
+    const max = Math.pow(10, n) - 1;
+    return randInt(min, max);
+  }
+  function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
+
+  function makeProblem(isBoss){
+    const lenA = isBoss ? 7 : randInt(3,4);
+    const lenB = isBoss ? 7 : randInt(3,4);
+    let a = randNDigit(lenA);
+    let b = randNDigit(lenB);
+    if (b > a) { const t = a; a = b; b = t; }
+    return { id: idCounter++, mode, a, b, isBoss, missCount: 0 };
+  }
+  function getAnswer(p){ return p.mode === 'add' ? p.a + p.b : p.a - p.b; }
+  function maxDigitsOf(p){ return String(p.a).length; }
+
+  // ---------- rendering ----------
+  function render(problem){
+    const maxDigits = maxDigitsOf(problem);
+    const aStr = String(problem.a);
+    const bDisplay = String(problem.b).padStart(maxDigits, ' ');
+    const boxSize = maxDigits <= 4 ? 46 : 30;
+    const boxGap = maxDigits <= 4 ? 6 : 4;
+    sheetGrid.style.setProperty('--cols', maxDigits);
+    sheetGrid.style.setProperty('--box-size', boxSize + 'px');
+    sheetGrid.style.setProperty('--box-gap', boxGap + 'px');
+
+    tickState = new Array(maxDigits).fill(false);
+
+    // typing order: rightmost digit first, then leftward, overflow (if any) last
+    order = [];
+    for (let i = maxDigits - 1; i >= 0; i--) order.push({ type: 'digit', col: i });
+    if (problem.mode === 'add') order.push({ type: 'overflow' });
+    activeSlotPos = 0;
+
+    let html = '';
+
+    html += '<div class="row"><div class="tick-cell"></div>';
+    for (let i=0;i<maxDigits;i++){
+      html += `<div class="tick-cell"><button type="button" class="tick-box" data-col="${i}" aria-label="Carry or borrow mark"></button></div>`;
+    }
+    html += '</div>';
+
+    html += '<div class="row"><div class="op-cell"></div>';
+    for (let i=0;i<maxDigits;i++){
+      html += `<div class="digit-cell" data-col="${i}" data-role="top">${aStr[i]}</div>`;
+    }
+    html += '</div>';
+
+    html += `<div class="row"><div class="op-cell">${problem.mode === 'add' ? '+' : '\u2212'}</div>`;
+    for (let i=0;i<maxDigits;i++){
+      const ch = bDisplay[i];
+      const blank = ch === ' ';
+      html += `<div class="digit-cell${blank ? ' blank' : ''}" data-col="${i}" data-role="bottom">${blank ? '0' : ch}</div>`;
+    }
+    html += '</div>';
+
+    html += '<div class="rule-cell"></div>';
+
+    html += '<div class="row">';
+    html += `<button type="button" class="ans-box${problem.mode === 'add' ? '' : ' hidden-cell'}" data-col="overflow"></button>`;
+    for (let i=0;i<maxDigits;i++){
+      html += `<button type="button" class="ans-box" data-col="${i}"></button>`;
+    }
+    html += '</div>';
+
+    sheetGrid.innerHTML = html;
+
+    sheetGrid.querySelectorAll('.tick-box').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const col = Number(btn.dataset.col);
+        tickState[col] = !tickState[col];
+        btn.classList.toggle('checked', tickState[col]);
+      });
+    });
+
+    sheetGrid.querySelectorAll('.ans-box').forEach(box=>{
+      box.addEventListener('click', ()=>{
+        if (busy) return;
+        const col = box.dataset.col;
+        const desc = col === 'overflow' ? { type:'overflow' } : { type:'digit', col:Number(col) };
+        const idx = order.findIndex(o => o.type === desc.type && o.col === desc.col);
+        if (idx !== -1){ activeSlotPos = idx; updateActiveHighlight(); }
+      });
+    });
+
+    updateActiveHighlight();
+
+    worksheetNo.textContent = 'No. ' + String(totalShown).padStart(3,'0');
+    card.classList.toggle('boss', !!problem.isBoss);
+    subline.textContent = problem.isBoss
+      ? 'Boss round — seven digits, one minute. Take a breath.'
+      : (mode === 'add'
+          ? 'Start from the ones column and work left, just like in your head.'
+          : 'Start from the ones column and work left, just like in your head.');
+    caption.textContent = '';
+  }
+
+  function slotSelector(slot){
+    return slot.type === 'overflow' ? '.ans-box[data-col="overflow"]' : `.ans-box[data-col="${slot.col}"]`;
+  }
+  function updateActiveHighlight(){
+    sheetGrid.querySelectorAll('.ans-box').forEach(b=>b.classList.remove('active-slot'));
+    const slot = order[activeSlotPos];
+    if (!slot) return;
+    const el = sheetGrid.querySelector(slotSelector(slot));
+    if (el) el.classList.add('active-slot');
+  }
+
+  function updateStats(){
+    statsLeft.textContent = `Solved ${solved} · Streak ${streak}`;
+    statsRight.textContent = `Best ${best}`;
+  }
+
+  // ---------- timer ----------
+  function startTimer(seconds){
+    clearInterval(timerInterval);
+    timeLeft = seconds;
+    timeLimit = seconds;
+    timerFill.style.width = '100%';
+    timerFill.classList.remove('low');
+    timerLabel.textContent = seconds + 's';
+    const startedAt = Date.now();
+    timerInterval = setInterval(()=>{
+      const elapsed = (Date.now() - startedAt) / 1000;
+      const remaining = Math.max(0, timeLimit - elapsed);
+      timeLeft = remaining;
+      const pct = (remaining / timeLimit) * 100;
+      timerFill.style.width = pct + '%';
+      timerLabel.textContent = Math.ceil(remaining) + 's';
+      if (pct <= 25) timerFill.classList.add('low');
+      if (remaining <= 0){
+        clearInterval(timerInterval);
+        if (!busy) missFlow('timeout');
+      }
+    }, 100);
+  }
+
+  // ---------- input handling ----------
+  function setBusy(val){
+    busy = val;
+    numpad.classList.toggle('disabled', busy);
+  }
+
+  function inputDigit(d){
+    if (busy || !current) return;
+    const slot = order[activeSlotPos];
+    if (!slot) return;
+    sheetGrid.querySelector(slotSelector(slot)).textContent = d;
+    if (activeSlotPos < order.length - 1) activeSlotPos++;
+    updateActiveHighlight();
+  }
+
+  function backspaceKey(){
+    if (busy || !current) return;
+    const slot = order[activeSlotPos];
+    const el = sheetGrid.querySelector(slotSelector(slot));
+    if (el.textContent !== ''){
+      el.textContent = '';
+    } else if (activeSlotPos > 0){
+      activeSlotPos--;
+      sheetGrid.querySelector(slotSelector(order[activeSlotPos])).textContent = '';
+    }
+    updateActiveHighlight();
+  }
+
+  numpad.addEventListener('click', (e)=>{
+    const btn = e.target.closest('.num-key');
+    if (!btn) return;
+    const key = btn.dataset.key;
+    if (key === 'back') backspaceKey();
+    else if (key === 'enter') onCheck();
+    else inputDigit(key);
+  });
+
+  document.addEventListener('keydown', (e)=>{
+    if (busy || !current) return;
+    if (/^[0-9]$/.test(e.key)){ e.preventDefault(); inputDigit(e.key); }
+    else if (e.key === 'Backspace'){ e.preventDefault(); backspaceKey(); }
+    else if (e.key === 'Enter'){ e.preventDefault(); onCheck(); }
+  });
+
+  // ---------- flow ----------
+  function nextProblem(){
+    setBusy(false);
+    totalShown++;
+    let problem = null;
+
+    const dueIdx = retryQueue.findIndex(item => item.dueAt <= totalShown);
+    if (dueIdx !== -1){
+      problem = retryQueue.splice(dueIdx, 1)[0].problem;
+    } else {
+      sinceBoss++;
+      let isBoss = false;
+      if (sinceBoss >= bossThreshold){
+        isBoss = true;
+        sinceBoss = 0;
+        bossThreshold = randInt(5,6);
+      }
+      problem = makeProblem(isBoss);
+    }
+
+    current = problem;
+    render(problem);
+    startTimer(problem.isBoss ? 60 : 45);
+  }
+
+  function readAnswerValue(){
+    const maxDigits = maxDigitsOf(current);
+    let overflowVal = '';
+    if (current.mode === 'add'){
+      const el = sheetGrid.querySelector('.ans-box[data-col="overflow"]');
+      overflowVal = el.textContent.trim() || '0';
+    }
+    let digits = '';
+    for (let i=0;i<maxDigits;i++){
+      const el = sheetGrid.querySelector(`.ans-box[data-col="${i}"]`);
+      digits += (el.textContent.trim() || '0');
+    }
+    return Number((overflowVal + digits) || '0');
+  }
+
+  function onCheck(){
+    if (busy || !current) return;
+    const userVal = readAnswerValue();
+    if (userVal === getAnswer(current)) correctFlow();
+    else missFlow('wrong');
+  }
+
+  function correctFlow(){
+    setBusy(true);
+    clearInterval(timerInterval);
+    solved++;
+    streak++;
+    best = Math.max(best, streak);
+    updateStats();
+    card.classList.add('flash-correct');
+    caption.textContent = 'Correct!';
+    caption.style.color = 'var(--correct)';
+    setTimeout(()=>{
+      card.classList.remove('flash-correct');
+      caption.style.color = '';
+      nextProblem();
+    }, 750);
+  }
+
+  async function missFlow(reason){
+    if (busy) return;
+    setBusy(true);
+    clearInterval(timerInterval);
+    streak = 0;
+    updateStats();
+
+    current.missCount++;
+    retryQueue.push({ problem: current, dueAt: totalShown + randInt(3,6) });
+
+    sheetGrid.querySelectorAll('.ans-box').forEach(el=>el.classList.remove('active-slot'));
+
+    if (reason === 'wrong'){
+      const filled = Array.from(sheetGrid.querySelectorAll('.ans-box'))
+        .filter(el => el.textContent.trim() !== '' && !el.classList.contains('hidden-cell'));
+      filled.forEach(el => el.classList.add('shake-wrong'));
+      caption.textContent = "Not quite — let's check it together.";
+      await sleep(700);
+      filled.forEach(el => el.classList.remove('shake-wrong'));
+    } else {
+      caption.textContent = "Time's up — let's work through it.";
+      await sleep(500);
+    }
+
+    sheetGrid.querySelectorAll('.ans-box').forEach(el => { el.textContent = ''; });
+
+    await revealSolution(current);
+    nextProblem();
+  }
+
+  function computeSteps(problem){
+    const maxDigits = maxDigitsOf(problem);
+    const aStr = String(problem.a);
+    const bStr = String(problem.b).padStart(maxDigits, '0');
+    const steps = [];
+    if (problem.mode === 'add'){
+      let carry = 0;
+      for (let i = maxDigits-1; i >= 0; i--){
+        const da = Number(aStr[i]), db = Number(bStr[i]);
+        const sum = da + db + carry;
+        const digit = sum % 10;
+        const carryOut = Math.floor(sum/10);
+        steps.push({ colIndex:i, a:da, b:db, carryIn:carry, digit, carryOut });
+        carry = carryOut;
+      }
+      steps.push({ overflow:true, digit: carry });
+    } else {
+      let borrow = 0;
+      for (let i = maxDigits-1; i >= 0; i--){
+        const rawA = Number(aStr[i]);
+        let da = rawA - borrow;
+        const db = Number(bStr[i]);
+        let borrowOut = 0;
+        if (da < db){ da += 10; borrowOut = 1; }
+        const digit = da - db;
+        steps.push({ colIndex:i, a:rawA, b:db, borrowIn:borrow, digit, borrowOut });
+        borrow = borrowOut;
+      }
+    }
+    return steps;
+  }
+
+  async function revealSolution(problem){
+    const steps = computeSteps(problem);
+    for (const step of steps){
+      if (step.overflow){
+        if (step.digit > 0){
+          const el = sheetGrid.querySelector('.ans-box[data-col="overflow"]');
+          el.textContent = step.digit;
+          el.classList.add('revealed');
+          caption.textContent = `Carry the ${step.digit} down as the final digit.`;
+        } else {
+          caption.textContent = `Answer: ${getAnswer(problem)}`;
+        }
+        await sleep(700);
+        continue;
+      }
+
+      const topCell = sheetGrid.querySelector(`.digit-cell[data-col="${step.colIndex}"][data-role="top"]`);
+      const bottomCell = sheetGrid.querySelector(`.digit-cell[data-col="${step.colIndex}"][data-role="bottom"]`);
+      topCell.classList.add('active-col');
+      bottomCell.classList.add('active-col');
+
+      if (problem.mode === 'add'){
+        caption.textContent = step.carryIn > 0
+          ? `${step.a} + ${step.b} + ${step.carryIn} (carried) = ${step.a + step.b + step.carryIn}`
+          : `${step.a} + ${step.b} = ${step.a + step.b}`;
+        await sleep(600);
+        if (step.carryOut > 0 && step.colIndex - 1 >= 0){
+          const tickBtn = sheetGrid.querySelector(`.tick-box[data-col="${step.colIndex - 1}"]`);
+          tickState[step.colIndex - 1] = true;
+          tickBtn.classList.add('checked','auto-pop');
+          setTimeout(()=>tickBtn.classList.remove('auto-pop'), 400);
+          await sleep(400);
+        }
+      } else {
+        if (step.borrowOut){
+          caption.textContent = `${step.a} is less than ${step.b}, so borrow: ${step.a + 10} \u2212 ${step.b} = ${step.digit}`;
+          if (step.colIndex - 1 >= 0){
+            const tickBtn = sheetGrid.querySelector(`.tick-box[data-col="${step.colIndex - 1}"]`);
+            tickState[step.colIndex - 1] = true;
+            tickBtn.classList.add('checked','auto-pop');
+            setTimeout(()=>tickBtn.classList.remove('auto-pop'), 400);
+          }
+          await sleep(700);
+        } else {
+          caption.textContent = step.borrowIn
+            ? `${step.a} was reduced by the borrow \u2192 ${step.a - step.borrowIn} \u2212 ${step.b} = ${step.digit}`
+            : `${step.a} \u2212 ${step.b} = ${step.digit}`;
+          await sleep(550);
+        }
+      }
+
+      const ansEl = sheetGrid.querySelector(`.ans-box[data-col="${step.colIndex}"]`);
+      ansEl.textContent = step.digit;
+      ansEl.classList.add('revealed');
+      topCell.classList.remove('active-col');
+      bottomCell.classList.remove('active-col');
+      topCell.classList.add('done-col');
+      bottomCell.classList.add('done-col');
+      await sleep(350);
+    }
+    caption.textContent = `Answer: ${getAnswer(problem)}`;
+    await sleep(1300);
+  }
+
+  // ---------- mode switching ----------
+  function setMode(newMode){
+    if (mode === newMode) return;
+    mode = newMode;
+    modeAddBtn.classList.toggle('active', mode === 'add');
+    modeSubBtn.classList.toggle('active', mode === 'sub');
+    retryQueue = [];
+    totalShown = 0;
+    sinceBoss = 0;
+    bossThreshold = randInt(5,6);
+    streak = 0;
+    clearInterval(timerInterval);
+    updateStats();
+    nextProblem();
+  }
+
+  modeAddBtn.addEventListener('click', ()=>setMode('add'));
+  modeSubBtn.addEventListener('click', ()=>setMode('sub'));
+
+  // ---------- boot ----------
+  updateStats();
+  nextProblem();
+})();
+</script>
+</body>
+</html>
