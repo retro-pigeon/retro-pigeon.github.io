@@ -186,16 +186,33 @@
     line-height: 1.4;
   }
 
+  .prompt{
+    text-align:center;
+    font-family:'Space Mono', monospace;
+    font-size: 0.86rem;
+    color: var(--chalk-dim);
+    margin: 10px 0 0;
+    min-height: 1.3em;
+  }
+
   .feedback{
     text-align:center;
     font-weight:700;
     font-size: 1.05rem;
-    margin: 10px 0 2px;
+    margin: 6px 0 2px;
     min-height: 1.4em;
   }
   .feedback.ok{ color: var(--green-ok); }
   .feedback.bad{ color: var(--pink); }
   .feedback.hidden{ visibility:hidden; }
+
+  .carrycell.zero{ color: var(--chalk-dim); }
+
+  .wrong-flash{ animation: wrongPulse 0.6s ease; border-radius: 4px; }
+  @keyframes wrongPulse{
+    0%{ background: rgba(234,123,149,0.4); }
+    100%{ background: transparent; }
+  }
 
   .spacer{ flex:1; min-height: 10px; }
 
@@ -241,6 +258,7 @@
 
   <div class="slate" id="slate"></div>
 
+  <div class="prompt" id="prompt"></div>
   <div class="feedback hidden" id="feedback"></div>
 
   <div class="spacer"></div>
@@ -268,12 +286,18 @@
   const timerText = document.getElementById('timerText');
   const bossBanner = document.getElementById('bossBanner');
   const feedback = document.getElementById('feedback');
+  const promptEl = document.getElementById('prompt');
   const streakEl = document.getElementById('streak');
   const scoreEl = document.getElementById('score');
   const numpad = document.getElementById('numpad');
 
+  const PLACE_NAMES = ['units','tens','hundreds','thousands','ten-thousands','hundred-thousands','millions'];
+  function placeName(p){ return PLACE_NAMES[p] || `10^${p}`; }
+
   let current = null;
-  let enteredDigits = [];   // index = place value (0 = units), value = digit typed
+  let slots = [];           // [{type:'digit'|'carry', place}] in entry order
+  let correctValues = [];   // correct value for each slot, same order
+  let enteredValues = [];   // values typed so far, same order
   let solving = false;
   let timerInterval = null;
   let timeLeft = 0, totalTime = 0;
@@ -317,7 +341,18 @@
 
   function startProblem(problem){
     current = problem;
-    enteredDigits = [];
+    const { resultDigits, carries } = longMultiply(problem.multiplicand, problem.multiplier);
+    const N = problem.digits;
+
+    slots = [];
+    correctValues = [];
+    for(let p=0;p<N;p++){
+      slots.push({ type:'digit', place:p });
+      correctValues.push(resultDigits[p]);
+      slots.push({ type:'carry', place:p });
+      correctValues.push(carries[p]);
+    }
+    enteredValues = [];
     solving = true;
     totalTime = problem.isBoss ? 180 : 65;
     timeLeft = totalTime;
@@ -328,6 +363,7 @@
     feedback.textContent = '';
 
     renderProblem();
+    updateLiveDisplay();
     updateTimerDisplay();
     clearInterval(timerInterval);
     timerInterval = setInterval(tick, 1000);
@@ -338,7 +374,13 @@
     updateTimerDisplay();
     if(timeLeft <= 0){
       clearInterval(timerInterval);
-      handleWrong(true);
+      solving = false;
+      totalCount++;
+      streak = 0;
+      showFeedback(false, true);
+      updateStatsDisplay();
+      pending.push({ problem: current, delay: randInt(2,4) });
+      flashWrongCells(() => animateSolution(() => setTimeout(nextProblem, 1300)));
     }
   }
 
@@ -406,19 +448,47 @@
     cap.className = 'stepCaption';
     cap.id = 'stepCaption';
     slate.appendChild(cap);
-
-    updateLiveResult();
   }
 
-  function updateLiveResult(){
-    const totalCols = current.digits + 1;
-    for(let place=0; place<totalCols; place++){
-      const cell = document.getElementById('res-'+place);
-      if(!cell) continue;
-      const has = enteredDigits[place] !== undefined;
-      cell.textContent = has ? enteredDigits[place] : '';
-      cell.classList.toggle('filled', has);
+  function updateLiveDisplay(){
+    const N = current.digits;
+    for(let p=0;p<=N;p++){
+      const rc = document.getElementById('res-'+p);
+      if(rc){ rc.textContent=''; rc.classList.remove('filled'); }
     }
+    for(let p=1;p<=N;p++){
+      const cc = document.getElementById('carry-'+p);
+      if(cc){ cc.textContent=''; cc.classList.remove('show','zero'); }
+    }
+    slots.forEach((slot, idx) => {
+      if(idx >= enteredValues.length) return;
+      const val = enteredValues[idx];
+      if(slot.type === 'digit'){
+        const rc = document.getElementById('res-'+slot.place);
+        if(rc){ rc.textContent = val; rc.classList.add('filled'); }
+      } else if(slot.place === N-1){
+        if(val !== 0){
+          const rc = document.getElementById('res-'+N);
+          if(rc){ rc.textContent = val; rc.classList.add('filled'); }
+        }
+      } else {
+        const cc = document.getElementById('carry-'+(slot.place+1));
+        if(cc){
+          cc.textContent = val;
+          cc.classList.add('show');
+          cc.classList.toggle('zero', val === 0);
+        }
+      }
+    });
+    updatePrompt();
+  }
+
+  function updatePrompt(){
+    if(enteredValues.length >= slots.length){ promptEl.textContent = ''; return; }
+    const slot = slots[enteredValues.length];
+    promptEl.textContent = slot.type === 'digit'
+      ? `Enter the ${placeName(slot.place)} digit`
+      : `Carry out of the ${placeName(slot.place)} column`;
   }
 
   function updateStatsDisplay(){
@@ -436,18 +506,15 @@
     slate.classList.add(ok ? 'flash-ok' : 'flash-bad');
   }
 
-  function submitAnswer(){
-    if(!solving || enteredDigits.length === 0) return;
+  function checkAnswer(){
+    if(!solving || enteredValues.length < slots.length) return;
     clearInterval(timerInterval);
     solving = false;
-
-    let userVal = 0;
-    for(let p=0;p<enteredDigits.length;p++){
-      userVal += (enteredDigits[p]||0) * Math.pow(10,p);
-    }
     totalCount++;
 
-    if(userVal === current.answer){
+    const isCorrect = slots.every((s, idx) => enteredValues[idx] === correctValues[idx]);
+
+    if(isCorrect){
       correctCount++; streak++;
       showFeedback(true);
       updateStatsDisplay();
@@ -457,18 +524,35 @@
       showFeedback(false);
       updateStatsDisplay();
       pending.push({ problem: current, delay: randInt(2,4) });
-      animateSolution(() => setTimeout(nextProblem, 1300));
+      flashWrongCells(() => animateSolution(() => setTimeout(nextProblem, 1300)));
     }
   }
 
-  function handleWrong(isTimeout){
-    solving = false;
-    totalCount++;
-    streak = 0;
-    showFeedback(false, isTimeout);
-    updateStatsDisplay();
-    pending.push({ problem: current, delay: randInt(2,4) });
-    animateSolution(() => setTimeout(nextProblem, 1300));
+  function flashWrongCells(cb){
+    const N = current.digits;
+    let any = false;
+    slots.forEach((slot, idx) => {
+      if(enteredValues[idx] !== correctValues[idx]){
+        any = true;
+        let cell;
+        if(slot.type === 'digit'){
+          cell = document.getElementById('res-'+slot.place);
+        } else if(slot.place === N-1){
+          cell = document.getElementById('res-'+N);
+        } else {
+          cell = document.getElementById('carry-'+(slot.place+1));
+        }
+        if(cell) cell.classList.add('wrong-flash');
+      }
+    });
+    if(any){
+      setTimeout(() => {
+        document.querySelectorAll('.wrong-flash').forEach(el => el.classList.remove('wrong-flash'));
+        cb();
+      }, 600);
+    } else {
+      cb();
+    }
   }
 
   function longMultiply(multiplicand, multiplier){
@@ -491,6 +575,7 @@
     const { digits, resultDigits, carries } = longMultiply(current.multiplicand, current.multiplier);
     const totalCols = current.digits + 1;
     const caption = document.getElementById('stepCaption');
+    promptEl.textContent = '';
 
     for(let p=0;p<totalCols;p++){
       const rc = document.getElementById('res-'+p);
@@ -543,31 +628,35 @@
     step();
   }
 
+  function pushValue(v){
+    if(enteredValues.length >= slots.length) return;
+    enteredValues.push(v);
+    updateLiveDisplay();
+    if(enteredValues.length === slots.length){
+      setTimeout(checkAnswer, 200);
+    }
+  }
+
   numpad.addEventListener('click', (e) => {
     const btn = e.target.closest('button');
     if(!btn || !solving) return;
     const key = btn.dataset.key;
-    if(key === 'enter'){ submitAnswer(); return; }
-    if(key === 'back'){ enteredDigits.pop(); updateLiveResult(); return; }
-    const totalCols = current.digits + 1;
-    if(enteredDigits.length < totalCols){
-      enteredDigits.push(Number(key));
-      updateLiveResult();
+    if(key === 'enter'){ checkAnswer(); return; }
+    if(key === 'back'){
+      if(enteredValues.length > 0){ enteredValues.pop(); updateLiveDisplay(); }
+      return;
     }
+    pushValue(Number(key));
   });
 
   window.addEventListener('keydown', (e) => {
     if(!solving) return;
     if(e.key >= '0' && e.key <= '9'){
-      const totalCols = current.digits + 1;
-      if(enteredDigits.length < totalCols){
-        enteredDigits.push(Number(e.key));
-        updateLiveResult();
-      }
+      pushValue(Number(e.key));
     } else if(e.key === 'Backspace'){
-      enteredDigits.pop(); updateLiveResult();
+      if(enteredValues.length > 0){ enteredValues.pop(); updateLiveDisplay(); }
     } else if(e.key === 'Enter'){
-      submitAnswer();
+      checkAnswer();
     }
   });
 
