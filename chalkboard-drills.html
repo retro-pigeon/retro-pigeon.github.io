@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Chalkboard Drills</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #16302a;
+    --bg-deep: #102420;
+    --panel: #1f3f35;
+    --chalk: #ece6d6;
+    --chalk-dim: #a9bdb2;
+    --chalk-rule: #4f7167;
+    --yellow: #e8c468;
+    --pink: #ea7b95;
+    --green-ok: #8fd6a8;
+    --cellw: clamp(30px, 8.6vw, 44px);
+  }
+
+  *{ box-sizing:border-box; }
+
+  html,body{
+    margin:0; padding:0; height:100%;
+    background:
+      radial-gradient(ellipse at 20% 0%, rgba(255,255,255,0.03), transparent 55%),
+      radial-gradient(ellipse at 85% 90%, rgba(255,255,255,0.025), transparent 50%),
+      var(--bg);
+    color: var(--chalk);
+    font-family: 'Kalam', cursive;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    overscroll-behavior: none;
+  }
+
+  .app{
+    max-width: 460px;
+    margin: 0 auto;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 14px 14px calc(14px + env(safe-area-inset-bottom));
+  }
+
+  .topbar{
+    display:flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 4px 2px 10px;
+  }
+  .brand{
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    color: var(--chalk);
+  }
+  .stats{
+    font-family:'Space Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--chalk-dim);
+    display:flex; gap:12px;
+  }
+  #streak.hot{ color: var(--yellow); }
+
+  .timerWrap{
+    position: relative;
+    height: 8px;
+    border-radius: 5px;
+    background: rgba(255,255,255,0.08);
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+  .timerBar{
+    height: 100%;
+    width: 100%;
+    background: var(--chalk-dim);
+    transition: width 1s linear, background 0.4s ease;
+    border-radius: 5px;
+  }
+  .timerBar.low{ background: var(--pink); }
+  .timerText{
+    text-align:right;
+    font-family:'Space Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--chalk-dim);
+    margin-bottom: 8px;
+  }
+  .timerText.low{ color: var(--pink); }
+
+  .bossBanner{
+    text-align:center;
+    color: var(--pink);
+    font-family:'Space Mono', monospace;
+    font-weight:700;
+    letter-spacing: 2px;
+    font-size: 0.78rem;
+    margin-bottom: 8px;
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  .bossBanner.hidden{ display:none; }
+  @keyframes pulse{
+    0%,100%{ opacity: 0.65; }
+    50%{ opacity: 1; }
+  }
+
+  .slate{
+    background: var(--panel);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    padding: 18px 10px 14px;
+    display: grid;
+    justify-content: center;
+    row-gap: 2px;
+    position: relative;
+    box-shadow: inset 0 0 30px rgba(0,0,0,0.18);
+    transition: box-shadow 0.3s ease, border-color 0.3s ease;
+  }
+  .slate.boss{
+    border-color: rgba(234,123,149,0.35);
+    box-shadow: inset 0 0 30px rgba(0,0,0,0.18), 0 0 18px rgba(234,123,149,0.15);
+  }
+  .slate.flash-ok{ animation: flashOk 0.5s ease; }
+  .slate.flash-bad{ animation: flashBad 0.5s ease; }
+  @keyframes flashOk{
+    0%{ box-shadow: inset 0 0 0 2px var(--green-ok); }
+    100%{ box-shadow: inset 0 0 30px rgba(0,0,0,0.18); }
+  }
+  @keyframes flashBad{
+    0%{ box-shadow: inset 0 0 0 2px var(--pink); }
+    100%{ box-shadow: inset 0 0 30px rgba(0,0,0,0.18); }
+  }
+
+  .cell{
+    width: var(--cellw);
+    height: calc(var(--cellw) + 6px);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Space Mono', monospace;
+    font-size: clamp(1.15rem, 5.4vw, 1.7rem);
+    color: var(--chalk);
+  }
+  .cell.opsign{ color: var(--chalk-dim); font-size: clamp(1rem, 4.6vw, 1.4rem); }
+  .cell.highlight{
+    color: var(--yellow);
+    text-shadow: 0 0 12px rgba(232,196,104,0.7);
+  }
+  .cell.reveal{ animation: pop 0.35s ease; }
+  @keyframes pop{
+    0%{ transform: scale(0.4); opacity:0; }
+    70%{ transform: scale(1.15); }
+    100%{ transform: scale(1); opacity:1; }
+  }
+  .result-cell.filled{ color: var(--chalk); }
+
+  .carrycell{
+    width: var(--cellw);
+    height: 18px;
+    display:flex; align-items:flex-end; justify-content:center;
+    font-family:'Space Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--yellow);
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  .carrycell.show{ opacity: 1; transform: translateY(0); }
+
+  .divider{
+    grid-column: 1 / -1;
+    height: 2px;
+    margin: 6px 0 4px;
+    background-image: linear-gradient(to right, var(--chalk-rule) 60%, transparent 0%);
+    background-size: 12px 2px;
+    background-repeat: repeat-x;
+  }
+
+  .stepCaption{
+    grid-column: 1 / -1;
+    text-align:center;
+    font-family:'Space Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--chalk-dim);
+    min-height: 1.4em;
+    margin-top: 8px;
+    line-height: 1.4;
+  }
+
+  .feedback{
+    text-align:center;
+    font-weight:700;
+    font-size: 1.05rem;
+    margin: 10px 0 2px;
+    min-height: 1.4em;
+  }
+  .feedback.ok{ color: var(--green-ok); }
+  .feedback.bad{ color: var(--pink); }
+  .feedback.hidden{ visibility:hidden; }
+
+  .spacer{ flex:1; min-height: 10px; }
+
+  .numpad{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .numpad button{
+    font-family:'Space Mono', monospace;
+    font-size: 1.3rem;
+    padding: 14px 0;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: var(--panel);
+    color: var(--chalk);
+    cursor: pointer;
+    -webkit-user-select:none;
+  }
+  .numpad button:active{
+    background: rgba(255,255,255,0.12);
+    transform: scale(0.97);
+  }
+  .numpad button.key-back{ color: var(--pink); }
+  .numpad button.key-enter{ color: var(--green-ok); }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="brand">Chalkboard Drills</div>
+    <div class="stats">
+      <span id="streak">streak 0</span>
+      <span id="score">0 / 0</span>
+    </div>
+  </div>
+
+  <div class="timerWrap"><div class="timerBar" id="timerBar"></div></div>
+  <div class="timerText" id="timerText">65s</div>
+
+  <div class="bossBanner hidden" id="bossBanner">BOSS · 7 DIGITS · 3:00</div>
+
+  <div class="slate" id="slate"></div>
+
+  <div class="feedback hidden" id="feedback"></div>
+
+  <div class="spacer"></div>
+
+  <div class="numpad" id="numpad">
+    <button data-key="1">1</button>
+    <button data-key="2">2</button>
+    <button data-key="3">3</button>
+    <button data-key="4">4</button>
+    <button data-key="5">5</button>
+    <button data-key="6">6</button>
+    <button data-key="7">7</button>
+    <button data-key="8">8</button>
+    <button data-key="9">9</button>
+    <button class="key-back" data-key="back">⌫</button>
+    <button data-key="0">0</button>
+    <button class="key-enter" data-key="enter">↵</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  const slate = document.getElementById('slate');
+  const timerBar = document.getElementById('timerBar');
+  const timerText = document.getElementById('timerText');
+  const bossBanner = document.getElementById('bossBanner');
+  const feedback = document.getElementById('feedback');
+  const streakEl = document.getElementById('streak');
+  const scoreEl = document.getElementById('score');
+  const numpad = document.getElementById('numpad');
+
+  let current = null;
+  let enteredDigits = [];   // index = place value (0 = units), value = digit typed
+  let solving = false;
+  let timerInterval = null;
+  let timeLeft = 0, totalTime = 0;
+
+  let pending = [];         // [{problem, delay}]
+  let normalCounter = 0;
+  let bossThreshold = randInt(5,6);
+  let correctCount = 0, totalCount = 0, streak = 0;
+
+  function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+
+  function generateMultiplicand(digits){
+    const min = Math.pow(10, digits-1);
+    const max = Math.pow(10, digits)-1;
+    return randInt(min,max);
+  }
+
+  function generateProblem(isBoss){
+    const digits = isBoss ? 7 : (Math.random() < 0.5 ? 3 : 4);
+    const multiplicand = generateMultiplicand(digits);
+    const multiplier = randInt(2,9);
+    return { multiplicand, multiplier, digits, isBoss, answer: multiplicand*multiplier };
+  }
+
+  function nextProblem(){
+    pending.forEach(p => p.delay--);
+    const idx = pending.findIndex(p => p.delay <= 0);
+    let problem;
+    if(idx !== -1){
+      problem = pending.splice(idx,1)[0].problem;
+    } else if(normalCounter >= bossThreshold){
+      problem = generateProblem(true);
+      normalCounter = 0;
+      bossThreshold = randInt(5,6);
+    } else {
+      problem = generateProblem(false);
+      normalCounter++;
+    }
+    startProblem(problem);
+  }
+
+  function startProblem(problem){
+    current = problem;
+    enteredDigits = [];
+    solving = true;
+    totalTime = problem.isBoss ? 180 : 65;
+    timeLeft = totalTime;
+
+    bossBanner.classList.toggle('hidden', !problem.isBoss);
+    slate.classList.toggle('boss', problem.isBoss);
+    feedback.classList.add('hidden');
+    feedback.textContent = '';
+
+    renderProblem();
+    updateTimerDisplay();
+    clearInterval(timerInterval);
+    timerInterval = setInterval(tick, 1000);
+  }
+
+  function tick(){
+    timeLeft--;
+    updateTimerDisplay();
+    if(timeLeft <= 0){
+      clearInterval(timerInterval);
+      handleWrong(true);
+    }
+  }
+
+  function updateTimerDisplay(){
+    const pct = Math.max(0, (timeLeft/totalTime)*100);
+    timerBar.style.width = pct + '%';
+    const low = timeLeft <= Math.max(8, totalTime*0.15);
+    timerBar.classList.toggle('low', low);
+    timerText.classList.toggle('low', low);
+    const m = Math.floor(Math.max(0,timeLeft)/60);
+    const s = Math.max(0,timeLeft) % 60;
+    timerText.textContent = totalTime > 60
+      ? `${m}:${String(s).padStart(2,'0')}`
+      : `${timeLeft}s`;
+  }
+
+  function renderProblem(){
+    const N = current.digits;
+    const totalCols = N + 1;
+    slate.style.gridTemplateColumns = `repeat(${totalCols}, var(--cellw))`;
+    slate.innerHTML = '';
+
+    const mcStr = String(current.multiplicand).padStart(totalCols, '\u0000');
+
+    // carry row
+    for(let i=0;i<totalCols;i++){
+      const place = totalCols - 1 - i;
+      const c = document.createElement('div');
+      c.className = 'carrycell';
+      c.id = 'carry-' + place;
+      slate.appendChild(c);
+    }
+    // multiplicand row
+    for(let i=0;i<totalCols;i++){
+      const place = totalCols - 1 - i;
+      const ch = mcStr[i];
+      const c = document.createElement('div');
+      c.className = 'cell';
+      c.id = 'mc-' + place;
+      c.textContent = ch === '\u0000' ? '' : ch;
+      slate.appendChild(c);
+    }
+    // multiplier row
+    for(let i=0;i<totalCols;i++){
+      const c = document.createElement('div');
+      c.className = 'cell';
+      if(i === 0){ c.classList.add('opsign'); c.textContent = '\u00d7'; }
+      else if(i === totalCols-1){ c.id = 'mul-digit'; c.textContent = current.multiplier; }
+      slate.appendChild(c);
+    }
+    // divider
+    const div = document.createElement('div');
+    div.className = 'divider';
+    slate.appendChild(div);
+    // result row
+    for(let i=0;i<totalCols;i++){
+      const place = totalCols - 1 - i;
+      const c = document.createElement('div');
+      c.className = 'cell result-cell';
+      c.id = 'res-' + place;
+      slate.appendChild(c);
+    }
+    // step caption
+    const cap = document.createElement('div');
+    cap.className = 'stepCaption';
+    cap.id = 'stepCaption';
+    slate.appendChild(cap);
+
+    updateLiveResult();
+  }
+
+  function updateLiveResult(){
+    const totalCols = current.digits + 1;
+    for(let place=0; place<totalCols; place++){
+      const cell = document.getElementById('res-'+place);
+      if(!cell) continue;
+      const has = enteredDigits[place] !== undefined;
+      cell.textContent = has ? enteredDigits[place] : '';
+      cell.classList.toggle('filled', has);
+    }
+  }
+
+  function updateStatsDisplay(){
+    scoreEl.textContent = `${correctCount} / ${totalCount}`;
+    streakEl.textContent = `streak ${streak}`;
+    streakEl.classList.toggle('hot', streak >= 3);
+  }
+
+  function showFeedback(ok, timeout){
+    feedback.classList.remove('hidden','ok','bad');
+    feedback.classList.add(ok ? 'ok' : 'bad');
+    feedback.textContent = ok ? 'Correct!' : (timeout ? "Time's up" : 'Not quite');
+    slate.classList.remove('flash-ok','flash-bad');
+    void slate.offsetWidth;
+    slate.classList.add(ok ? 'flash-ok' : 'flash-bad');
+  }
+
+  function submitAnswer(){
+    if(!solving || enteredDigits.length === 0) return;
+    clearInterval(timerInterval);
+    solving = false;
+
+    let userVal = 0;
+    for(let p=0;p<enteredDigits.length;p++){
+      userVal += (enteredDigits[p]||0) * Math.pow(10,p);
+    }
+    totalCount++;
+
+    if(userVal === current.answer){
+      correctCount++; streak++;
+      showFeedback(true);
+      updateStatsDisplay();
+      setTimeout(nextProblem, 850);
+    } else {
+      streak = 0;
+      showFeedback(false);
+      updateStatsDisplay();
+      pending.push({ problem: current, delay: randInt(2,4) });
+      animateSolution(() => setTimeout(nextProblem, 1300));
+    }
+  }
+
+  function handleWrong(isTimeout){
+    solving = false;
+    totalCount++;
+    streak = 0;
+    showFeedback(false, isTimeout);
+    updateStatsDisplay();
+    pending.push({ problem: current, delay: randInt(2,4) });
+    animateSolution(() => setTimeout(nextProblem, 1300));
+  }
+
+  function longMultiply(multiplicand, multiplier){
+    const digits = String(multiplicand).split('').reverse().map(Number); // index0 = units
+    let carry = 0;
+    const resultDigits = [];
+    const carries = [];
+    for(let i=0;i<digits.length;i++){
+      const prod = digits[i]*multiplier + carry;
+      const d = prod % 10;
+      carry = Math.floor(prod/10);
+      resultDigits.push(d);
+      carries.push(carry);
+    }
+    if(carry > 0) resultDigits.push(carry);
+    return { digits, resultDigits, carries };
+  }
+
+  function animateSolution(done){
+    const { digits, resultDigits, carries } = longMultiply(current.multiplicand, current.multiplier);
+    const totalCols = current.digits + 1;
+    const caption = document.getElementById('stepCaption');
+
+    for(let p=0;p<totalCols;p++){
+      const rc = document.getElementById('res-'+p);
+      if(rc){ rc.textContent=''; rc.className='cell result-cell'; }
+      const cc = document.getElementById('carry-'+p);
+      if(cc){ cc.textContent=''; cc.classList.remove('show'); }
+    }
+
+    const stepDelay = current.isBoss ? 1150 : 950;
+    let i = 0;
+
+    function step(){
+      if(i >= digits.length){
+        if(resultDigits.length === digits.length + 1){
+          const p = digits.length;
+          const rc = document.getElementById('res-'+p);
+          if(rc){ rc.textContent = resultDigits[p]; rc.classList.add('reveal'); }
+        }
+        caption.textContent = `Answer: ${current.answer.toLocaleString()}`;
+        done();
+        return;
+      }
+      const mcCell = document.getElementById('mc-'+i);
+      const mulCell = document.getElementById('mul-digit');
+      if(mcCell) mcCell.classList.add('highlight');
+      if(mulCell) mulCell.classList.add('highlight');
+
+      const carryIn = i > 0 ? carries[i-1] : 0;
+      const prod = digits[i]*current.multiplier + carryIn;
+      const writeDigit = prod % 10;
+      const carryOut = Math.floor(prod/10);
+
+      caption.textContent = carryIn > 0
+        ? `${digits[i]} \u00d7 ${current.multiplier} + ${carryIn} carried = ${prod} \u2192 write ${writeDigit}, carry ${carryOut}`
+        : `${digits[i]} \u00d7 ${current.multiplier} = ${prod}${prod>=10 ? ` \u2192 write ${writeDigit}, carry ${carryOut}` : ` \u2192 write ${writeDigit}`}`;
+
+      setTimeout(() => {
+        const rc = document.getElementById('res-'+i);
+        if(rc){ rc.textContent = resultDigits[i]; rc.classList.add('reveal'); }
+        if(carries[i] > 0 && i+1 < totalCols){
+          const cc = document.getElementById('carry-'+(i+1));
+          if(cc){ cc.textContent = carries[i]; cc.classList.add('show'); }
+        }
+        if(mcCell) mcCell.classList.remove('highlight');
+        if(mulCell) mulCell.classList.remove('highlight');
+        i++;
+        setTimeout(step, 220);
+      }, stepDelay);
+    }
+    step();
+  }
+
+  numpad.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if(!btn || !solving) return;
+    const key = btn.dataset.key;
+    if(key === 'enter'){ submitAnswer(); return; }
+    if(key === 'back'){ enteredDigits.pop(); updateLiveResult(); return; }
+    const totalCols = current.digits + 1;
+    if(enteredDigits.length < totalCols){
+      enteredDigits.push(Number(key));
+      updateLiveResult();
+    }
+  });
+
+  window.addEventListener('keydown', (e) => {
+    if(!solving) return;
+    if(e.key >= '0' && e.key <= '9'){
+      const totalCols = current.digits + 1;
+      if(enteredDigits.length < totalCols){
+        enteredDigits.push(Number(e.key));
+        updateLiveResult();
+      }
+    } else if(e.key === 'Backspace'){
+      enteredDigits.pop(); updateLiveResult();
+    } else if(e.key === 'Enter'){
+      submitAnswer();
+    }
+  });
+
+  updateStatsDisplay();
+  nextProblem();
+})();
+</script>
+</body>
+</html>
