@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>High-Precision Motion & Sensor Signal Analyzer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+    
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    
+    .font-mono-data {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Custom Scrollbar for High-Density Log Viewers */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col antialiased selection:bg-cyan-500 selection:text-slate-950">
+
+  <!-- Header Navigation -->
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="p-2 bg-gradient-to-tr from-cyan-500 to-blue-600 rounded-xl shadow-lg shadow-cyan-500/20 text-slate-950 font-bold">
+          <i data-lucide="activity" class="w-6 h-6 text-slate-950"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold tracking-tight text-slate-100 flex items-center gap-2">
+            SensorKinematics <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-400 border border-cyan-800/50">Pro Web API</span>
+          </h1>
+          <p class="text-xs text-slate-400">High-Precision Accelerometer & Gyroscope Motion Telemetry</p>
+        </div>
+      </div>
+
+      <!-- Action Button Group -->
+      <div class="flex items-center gap-2">
+        <button id="iosPermissionBtn" class="hidden text-xs font-semibold px-3 py-2 bg-amber-500/10 text-amber-400 border border-amber-500/30 rounded-lg hover:bg-amber-500/20 transition flex items-center gap-1.5">
+          <i data-lucide="shield-alert" class="w-4 h-4"></i> Grant Motion Sensor Access
+        </button>
+
+        <button id="toggleRecordBtn" class="text-sm font-semibold px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 rounded-lg shadow-lg shadow-cyan-500/25 transition duration-150 flex items-center gap-2 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+          <i data-lucide="play" class="w-4 h-4 fill-slate-950" id="recordIcon"></i>
+          <span id="recordBtnText">Start Acquisition</span>
+        </button>
+
+        <button id="clearBtn" class="text-sm font-medium px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition flex items-center gap-1.5 hover:text-slate-100">
+          <i data-lucide="trash-2" class="w-4 h-4"></i> Reset
+        </button>
+
+        <button id="exportCsvBtn" class="text-sm font-medium px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition flex items-center gap-1.5 hover:text-slate-100 disabled:opacity-40 disabled:cursor-not-allowed" disabled>
+          <i data-lucide="download" class="w-4 h-4"></i> Export CSV
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- System Status & Sensor Metrics Grid -->
+    <section class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <!-- Active API Indicator -->
+      <div class="bg-slate-900 border border-slate-800/80 rounded-xl p-3.5 flex flex-col justify-between shadow-sm">
+        <span class="text-xs font-medium text-slate-400 flex items-center gap-1">
+          <i data-lucide="cpu" class="w-3.5 h-3.5 text-cyan-400"></i> Active API Layer
+        </span>
+        <div class="mt-2">
+          <div id="activeApiBadge" class="text-sm font-bold text-slate-200 truncate font-mono-data">Detecting...</div>
+          <div id="apiSubtext" class="text-[10px] text-slate-500 mt-0.5">Querying Web Sensors</div>
+        </div>
+      </div>
+
+      <!-- Sampling Rate Status -->
+      <div class="bg-slate-900 border border-slate-800/80 rounded-xl p-3.5 flex flex-col justify-between shadow-sm">
+        <span class="text-xs font-medium text-slate-400 flex items-center gap-1">
+          <i data-lucide="gauge" class="w-3.5 h-3.5 text-emerald-400"></i> Sampling Frequency
+        </span>
+        <div class="mt-2 flex items-baseline gap-1">
+          <span id="hzMetric" class="text-2xl font-bold text-emerald-400 font-mono-data">0.0</span>
+          <span class="text-xs font-semibold text-slate-500">Hz</span>
+        </div>
+      </div>
+
+      <!-- Data Point Counter -->
+      <div class="bg-slate-900 border border-slate-800/80 rounded-xl p-3.5 flex flex-col justify-between shadow-sm">
+        <span class="text-xs font-medium text-slate-400 flex items-center gap-1">
+          <i data-lucide="database" class="w-3.5 h-3.5 text-blue-400"></i> Samples Captured
+        </span>
+        <div class="mt-2">
+          <span id="sampleCountMetric" class="text-2xl font-bold text-slate-100 font-mono-data">0</span>
+        </div>
+      </div>
+
+      <!-- Peak Acceleration Magnitude -->
+      <div class="bg-slate-900 border border-slate-800/80 rounded-xl p-3.5 flex flex-col justify-between shadow-sm">
+        <span class="text-xs font-medium text-slate-400 flex items-center gap-1">
+          <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-400"></i> Peak Accel. Mag
+        </span>
+        <div class="mt-2 flex items-baseline gap-1">
+          <span id="peakAccelMetric" class="text-2xl font-bold text-amber-400 font-mono-data">0.00</span>
+          <span class="text-xs font-semibold text-slate-500">m/s²</span>
+        </div>
+      </div>
+
+      <!-- Peak Rotational Velocity -->
+      <div class="bg-slate-900 border border-slate-800/80 rounded-xl p-3.5 flex flex-col justify-between shadow-sm">
+        <span class="text-xs font-medium text-slate-400 flex items-center gap-1">
+          <i data-lucide="rotate-3d" class="w-3.5 h-3.5 text-purple-400"></i> Peak Gyro Speed
+        </span>
+        <div class="mt-2 flex items-baseline gap-1">
+          <span id="peakGyroMetric" class="text-2xl font-bold text-purple-400 font-mono-data">0.00</span>
+          <span class="text-xs font-semibold text-slate-500">deg/s</span>
+        </div>
+      </div>
+
+      <!-- Signal Noise Filter Mode -->
+      <div class="bg-slate-900 border border-slate-800/80 rounded-xl p-3.5 flex flex-col justify-between shadow-sm">
+        <span class="text-xs font-medium text-slate-400 flex items-center gap-1">
+          <i data-lucide="sliders" class="w-3.5 h-3.5 text-rose-400"></i> Signal Processing
+        </span>
+        <div class="mt-2">
+          <select id="filterSelector" class="w-full bg-slate-950 border border-slate-700 text-xs font-semibold text-slate-200 rounded p-1 focus:outline-none focus:border-cyan-500">
+            <option value="raw">Raw Unfiltered Signal</option>
+            <option value="lowpass" selected>Low-Pass Noise Filter</option>
+            <option value="highpass">High-Pass Motion Filter</option>
+            <option value="moving_avg">Moving Average Smooth</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- Signal Charts Section - Individual Axis Panels -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      
+      <!-- Accelerometer X Chart Card -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-800/80 pb-2">
+          <div class="flex items-center gap-2">
+            <div class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></div>
+            <h2 class="font-bold text-slate-200 text-xs tracking-wide uppercase">Accelerometer X-Axis</h2>
+          </div>
+          <span class="text-xs font-mono-data text-cyan-400 font-semibold"><span id="valAccX">0.00</span> m/s²</span>
+        </div>
+        <div class="relative flex-1 min-h-[170px] bg-slate-950/80 rounded-xl border border-slate-800/60 overflow-hidden">
+          <canvas id="accelXCanvas" class="w-full h-full block"></canvas>
+        </div>
+      </div>
+
+      <!-- Accelerometer Y Chart Card -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-800/80 pb-2">
+          <div class="flex items-center gap-2">
+            <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></div>
+            <h2 class="font-bold text-slate-200 text-xs tracking-wide uppercase">Accelerometer Y-Axis</h2>
+          </div>
+          <span class="text-xs font-mono-data text-emerald-400 font-semibold"><span id="valAccY">0.00</span> m/s²</span>
+        </div>
+        <div class="relative flex-1 min-h-[170px] bg-slate-950/80 rounded-xl border border-slate-800/60 overflow-hidden">
+          <canvas id="accelYCanvas" class="w-full h-full block"></canvas>
+        </div>
+      </div>
+
+      <!-- Accelerometer Z Chart Card -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-800/80 pb-2">
+          <div class="flex items-center gap-2">
+            <div class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></div>
+            <h2 class="font-bold text-slate-200 text-xs tracking-wide uppercase">Accelerometer Z-Axis</h2>
+          </div>
+          <span class="text-xs font-mono-data text-amber-400 font-semibold"><span id="valAccZ">0.00</span> m/s²</span>
+        </div>
+        <div class="relative flex-1 min-h-[170px] bg-slate-950/80 rounded-xl border border-slate-800/60 overflow-hidden">
+          <canvas id="accelZCanvas" class="w-full h-full block"></canvas>
+        </div>
+      </div>
+
+      <!-- Gyroscope X Chart Card -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-800/80 pb-2">
+          <div class="flex items-center gap-2">
+            <div class="w-2.5 h-2.5 rounded-full bg-purple-400 animate-pulse"></div>
+            <h2 class="font-bold text-slate-200 text-xs tracking-wide uppercase">Gyroscope X-Axis</h2>
+          </div>
+          <span class="text-xs font-mono-data text-purple-400 font-semibold"><span id="valGyroX">0.00</span> deg/s</span>
+        </div>
+        <div class="relative flex-1 min-h-[170px] bg-slate-950/80 rounded-xl border border-slate-800/60 overflow-hidden">
+          <canvas id="gyroXCanvas" class="w-full h-full block"></canvas>
+        </div>
+      </div>
+
+      <!-- Gyroscope Y Chart Card -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-800/80 pb-2">
+          <div class="flex items-center gap-2">
+            <div class="w-2.5 h-2.5 rounded-full bg-indigo-400 animate-pulse"></div>
+            <h2 class="font-bold text-slate-200 text-xs tracking-wide uppercase">Gyroscope Y-Axis</h2>
+          </div>
+          <span class="text-xs font-mono-data text-indigo-400 font-semibold"><span id="valGyroY">0.00</span> deg/s</span>
+        </div>
+        <div class="relative flex-1 min-h-[170px] bg-slate-950/80 rounded-xl border border-slate-800/60 overflow-hidden">
+          <canvas id="gyroYCanvas" class="w-full h-full block"></canvas>
+        </div>
+      </div>
+
+      <!-- Gyroscope Z Chart Card -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-800/80 pb-2">
+          <div class="flex items-center gap-2">
+            <div class="w-2.5 h-2.5 rounded-full bg-pink-400 animate-pulse"></div>
+            <h2 class="font-bold text-slate-200 text-xs tracking-wide uppercase">Gyroscope Z-Axis</h2>
+          </div>
+          <span class="text-xs font-mono-data text-pink-400 font-semibold"><span id="valGyroZ">0.00</span> deg/s</span>
+        </div>
+        <div class="relative flex-1 min-h-[170px] bg-slate-950/80 rounded-xl border border-slate-800/60 overflow-hidden">
+          <canvas id="gyroZCanvas" class="w-full h-full block"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Technical Diagnostic & Calibration Console -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800/80 pb-3">
+        <h3 class="font-bold text-slate-200 text-sm uppercase tracking-wide flex items-center gap-2">
+          <i data-lucide="terminal" class="w-4 h-4 text-cyan-400"></i> Precision Diagnostic Log & Hardware Specifications
+        </h3>
+        <span class="text-xs text-slate-500">Live Telemetry Pipeline</span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-mono-data">
+        <div class="p-3 bg-slate-950/60 rounded-xl border border-slate-800">
+          <div class="text-slate-400 text-[11px] mb-1 font-sans">Generic Sensor API Status</div>
+          <div id="sensorApiSupport" class="font-semibold text-slate-300">Checking...</div>
+        </div>
+
+        <div class="p-3 bg-slate-950/60 rounded-xl border border-slate-800">
+          <div class="text-slate-400 text-[11px] mb-1 font-sans">DeviceMotion Fallback API</div>
+          <div id="deviceMotionSupport" class="font-semibold text-slate-300">Checking...</div>
+        </div>
+
+        <div class="p-3 bg-slate-950/60 rounded-xl border border-slate-800">
+          <div class="text-slate-400 text-[11px] mb-1 font-sans">Max Requested Frequency</div>
+          <div id="requestedFreq" class="font-semibold text-cyan-400">60 Hz / Unlimited</div>
+        </div>
+
+        <div class="p-3 bg-slate-950/60 rounded-xl border border-slate-800">
+          <div class="text-slate-400 text-[11px] mb-1 font-sans">Sensor Hardware Permission</div>
+          <div id="permissionState" class="font-semibold text-slate-300">Not Requested</div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    // System Global State Container
+    const state = {
+      isRecording: false,
+      activeApi: 'None',
+      dataBuffer: [],
+      maxBufferLength: 250, // Display window width
+      recordedSamples: [], // Unlimited array stored for CSV Export
+      startTime: null,
+      sampleCounter: 0,
+      lastTimestamp: performance.now(),
+      measuredHz: 0,
+      
+      // Peaks
+      peakAccelMag: 0,
+      peakGyroSpeed: 0,
+
+      // Live Motion Vector Data
+      accel: { x: 0, y: 0, z: 0, mag: 0 },
+      gyro: { x: 0, y: 0, z: 0 },
+
+      // Signal Filter Processing Variables
+      filterMode: 'lowpass',
+      lowPassAlpha: 0.25,
+      filteredAccel: { x: 0, y: 0, z: 0 },
+      filteredGyro: { x: 0, y: 0, z: 0 },
+      rollingWindow: [],
+      movingAvgWindowSize: 5
+    };
+
+    // DOM Element Cached References
+    const elements = {
+      toggleRecordBtn: document.getElementById('toggleRecordBtn'),
+      recordBtnText: document.getElementById('recordBtnText'),
+      recordIcon: document.getElementById('recordIcon'),
+      clearBtn: document.getElementById('clearBtn'),
+      exportCsvBtn: document.getElementById('exportCsvBtn'),
+      iosPermissionBtn: document.getElementById('iosPermissionBtn'),
+      
+      // Metrics Display
+      activeApiBadge: document.getElementById('activeApiBadge'),
+      apiSubtext: document.getElementById('apiSubtext'),
+      hzMetric: document.getElementById('hzMetric'),
+      sampleCountMetric: document.getElementById('sampleCountMetric'),
+      peakAccelMetric: document.getElementById('peakAccelMetric'),
+      peakGyroMetric: document.getElementById('peakGyroMetric'),
+      filterSelector: document.getElementById('filterSelector'),
+
+      // Live Numerical Values
+      valAccX: document.getElementById('valAccX'),
+      valAccY: document.getElementById('valAccY'),
+      valAccZ: document.getElementById('valAccZ'),
+      valGyroX: document.getElementById('valGyroX'),
+      valGyroY: document.getElementById('valGyroY'),
+      valGyroZ: document.getElementById('valGyroZ'),
+
+      // Diagnostic Logs
+      sensorApiSupport: document.getElementById('sensorApiSupport'),
+      deviceMotionSupport: document.getElementById('deviceMotionSupport'),
+      requestedFreq: document.getElementById('requestedFreq'),
+      permissionState: document.getElementById('permissionState'),
+
+      // Canvas Plotters
+      accelXCanvas: document.getElementById('accelXCanvas'),
+      accelYCanvas: document.getElementById('accelYCanvas'),
+      accelZCanvas: document.getElementById('accelZCanvas'),
+      gyroXCanvas: document.getElementById('gyroXCanvas'),
+      gyroYCanvas: document.getElementById('gyroYCanvas'),
+      gyroZCanvas: document.getElementById('gyroZCanvas')
+    };
+
+    // Instantiate Lucide SVG Icons
+    lucide.createIcons();
+
+    // High-Performance Time-Series Canvas Plotter Class
+    class TimeSeriesChart {
+      constructor(canvas, channels) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.channels = channels; // Array of { key: 'accX', color: '#000' }
+        this.scaleY = 1;
+
+        this.resize();
+        window.addEventListener('resize', () => this.resize());
+      }
+
+      resize() {
+        const rect = this.canvas.parentElement.getBoundingClientRect();
+        this.canvas.width = rect.width * window.devicePixelRatio;
+        this.canvas.height = rect.height * window.devicePixelRatio;
+        this.ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        this.width = rect.width;
+        this.height = rect.height;
+      }
+
+      render(buffer) {
+        const { ctx, width, height } = this;
+        ctx.clearRect(0, 0, width, height);
+
+        // Draw Subtle Grid Lines
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        const gridRows = 3;
+        for (let i = 1; i < gridRows; i++) {
+          const y = (height / gridRows) * i;
+          ctx.moveTo(0, y);
+          ctx.lineTo(width, y);
+        }
+        ctx.stroke();
+
+        // Draw Zero Baseline
+        const centerY = height / 2;
+        ctx.strokeStyle = '#334155';
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(0, centerY);
+        ctx.lineTo(width, centerY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        if (buffer.length < 2) return;
+
+        // Auto-Scale Y Bounds based on Buffer Max Peak
+        let maxVal = 0.1;
+        buffer.forEach(item => {
+          this.channels.forEach(ch => {
+            const val = Math.abs(item[ch.key] || 0);
+            if (val > maxVal) maxVal = val;
+          });
+        });
+        maxVal *= 1.2; // Headroom
+
+        const stepX = width / (state.maxBufferLength - 1);
+
+        // Render Signal Line for Each Channel
+        this.channels.forEach(channel => {
+          ctx.strokeStyle = channel.color;
+          ctx.lineWidth = 2;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          ctx.beginPath();
+
+          buffer.forEach((point, idx) => {
+            const val = point[channel.key] || 0;
+            const x = idx * stepX;
+            const y = centerY - (val / maxVal) * (height / 2 - 10);
+
+            if (idx === 0) {
+              ctx.moveTo(x, y);
+            } else {
+              ctx.lineTo(x, y);
+            }
+          });
+
+          ctx.stroke();
+        });
+      }
+    }
+
+    // Initialize Individual Axis Plotters
+    const accelXPlotter = new TimeSeriesChart(elements.accelXCanvas, [{ key: 'accX', color: '#22d3ee' }]);
+    const accelYPlotter = new TimeSeriesChart(elements.accelYCanvas, [{ key: 'accY', color: '#34d399' }]);
+    const accelZPlotter = new TimeSeriesChart(elements.accelZCanvas, [{ key: 'accZ', color: '#fbbf24' }]);
+
+    const gyroXPlotter = new TimeSeriesChart(elements.gyroXCanvas, [{ key: 'gyroX', color: '#c084fc' }]);
+    const gyroYPlotter = new TimeSeriesChart(elements.gyroYCanvas, [{ key: 'gyroY', color: '#818cf8' }]);
+    const gyroZPlotter = new TimeSeriesChart(elements.gyroZCanvas, [{ key: 'gyroZ', color: '#f472b6' }]);
+
+    function applySignalFilters(rawAcc, rawGyro) {
+      const mode = state.filterMode;
+
+      if (mode === 'raw') {
+        return { filteredAcc: { ...rawAcc }, filteredGyro: { ...rawGyro } };
+      }
+
+      if (mode === 'lowpass') {
+        const a = state.lowPassAlpha;
+        state.filteredAccel.x += a * (rawAcc.x - state.filteredAccel.x);
+        state.filteredAccel.y += a * (rawAcc.y - state.filteredAccel.y);
+        state.filteredAccel.z += a * (rawAcc.z - state.filteredAccel.z);
+
+        state.filteredGyro.x += a * (rawGyro.x - state.filteredGyro.x);
+        state.filteredGyro.y += a * (rawGyro.y - state.filteredGyro.y);
+        state.filteredGyro.z += a * (rawGyro.z - state.filteredGyro.z);
+
+        return {
+          filteredAcc: { ...state.filteredAccel },
+          filteredGyro: { ...state.filteredGyro }
+        };
+      }
+
+      if (mode === 'highpass') {
+        const a = 0.8;
+        state.filteredAccel.x = a * (state.filteredAccel.x + rawAcc.x - (state.lastRawAcc?.x || rawAcc.x));
+        state.filteredAccel.y = a * (state.filteredAccel.y + rawAcc.y - (state.lastRawAcc?.y || rawAcc.y));
+        state.filteredAccel.z = a * (state.filteredAccel.z + rawAcc.z - (state.lastRawAcc?.z || rawAcc.z));
+
+        state.filteredGyro.x = a * (state.filteredGyro.x + rawGyro.x - (state.lastRawGyro?.x || rawGyro.x));
+        state.filteredGyro.y = a * (state.filteredGyro.y + rawGyro.y - (state.lastRawGyro?.y || rawGyro.y));
+        state.filteredGyro.z = a * (state.filteredGyro.z + rawGyro.z - (state.lastRawGyro?.z || rawGyro.z));
+
+        state.lastRawAcc = { ...rawAcc };
+        state.lastRawGyro = { ...rawGyro };
+
+        return {
+          filteredAcc: { ...state.filteredAccel },
+          filteredGyro: { ...state.filteredGyro }
+        };
+      }
+
+      if (mode === 'moving_avg') {
+        state.rollingWindow.push({ acc: rawAcc, gyro: rawGyro });
+        if (state.rollingWindow.length > state.movingAvgWindowSize) {
+          state.rollingWindow.shift();
+        }
+
+        const len = state.rollingWindow.length;
+        const avgAcc = { x: 0, y: 0, z: 0 };
+        const avgGyro = { x: 0, y: 0, z: 0 };
+
+        state.rollingWindow.forEach(item => {
+          avgAcc.x += item.acc.x / len;
+          avgAcc.y += item.acc.y / len;
+          avgAcc.z += item.acc.z / len;
+
+          avgGyro.x += item.gyro.x / len;
+          avgGyro.y += item.gyro.y / len;
+          avgGyro.z += item.gyro.z / len;
+        });
+
+        return { filteredAcc: avgAcc, filteredGyro: avgGyro };
+      }
+
+      return { filteredAcc: rawAcc, filteredGyro: rawGyro };
+    }
+
+    function processSensorSample(acc, gyro, timestamp) {
+      if (!state.isRecording) return;
+
+      const now = timestamp || performance.now();
+      const deltaMs = now - state.lastTimestamp;
+      state.lastTimestamp = now;
+
+      if (deltaMs > 0) {
+        const instantHz = 1000 / deltaMs;
+        state.measuredHz = state.measuredHz * 0.9 + instantHz * 0.1;
+      }
+
+      const { filteredAcc, filteredGyro } = applySignalFilters(acc, gyro);
+
+      const accMag = Math.sqrt(
+        filteredAcc.x * filteredAcc.x +
+        filteredAcc.y * filteredAcc.y +
+        filteredAcc.z * filteredAcc.z
+      );
+
+      const gyroSpeed = Math.sqrt(
+        filteredGyro.x * filteredGyro.x +
+        filteredGyro.y * filteredGyro.y +
+        filteredGyro.z * filteredGyro.z
+      );
+
+      if (accMag > state.peakAccelMag) state.peakAccelMag = accMag;
+      if (gyroSpeed > state.peakGyroSpeed) state.peakGyroSpeed = gyroSpeed;
+
+      state.sampleCounter++;
+
+      const samplePoint = {
+        timestamp: now.toFixed(2),
+        accX: filteredAcc.x,
+        accY: filteredAcc.y,
+        accZ: filteredAcc.z,
+        accMag: accMag,
+        gyroX: filteredGyro.x,
+        gyroY: filteredGyro.y,
+        gyroZ: filteredGyro.z
+      };
+
+      state.dataBuffer.push(samplePoint);
+      if (state.dataBuffer.length > state.maxBufferLength) {
+        state.dataBuffer.shift();
+      }
+
+      state.recordedSamples.push(samplePoint);
+
+      // Update Live UI Labels
+      elements.valAccX.textContent = filteredAcc.x.toFixed(2);
+      elements.valAccY.textContent = filteredAcc.y.toFixed(2);
+      elements.valAccZ.textContent = filteredAcc.z.toFixed(2);
+
+      elements.valGyroX.textContent = filteredGyro.x.toFixed(2);
+      elements.valGyroY.textContent = filteredGyro.y.toFixed(2);
+      elements.valGyroZ.textContent = filteredGyro.z.toFixed(2);
+
+      elements.hzMetric.textContent = state.measuredHz.toFixed(1);
+      elements.sampleCountMetric.textContent = state.sampleCounter.toLocaleString();
+      elements.peakAccelMetric.textContent = state.peakAccelMag.toFixed(2);
+      elements.peakGyroMetric.textContent = state.peakGyroSpeed.toFixed(2);
+
+      elements.exportCsvBtn.disabled = state.recordedSamples.length === 0;
+    }
+
+    async function initGenericSensorAPI() {
+      let sensorInitialized = false;
+
+      if ('LinearAccelerationSensor' in window && 'Gyroscope' in window) {
+        try {
+          elements.sensorApiSupport.textContent = 'Supported (W3C Sensors)';
+          elements.sensorApiSupport.className = 'font-semibold text-emerald-400';
+
+          const accelSensor = new LinearAccelerationSensor({ frequency: 60 });
+          const gyroSensor = new Gyroscope({ frequency: 60 });
+
+          let currentAcc = { x: 0, y: 0, z: 0 };
+          let currentGyro = { x: 0, y: 0, z: 0 };
+
+          accelSensor.addEventListener('reading', () => {
+            currentAcc = { x: accelSensor.x || 0, y: accelSensor.y || 0, z: accelSensor.z || 0 };
+            processSensorSample(currentAcc, currentGyro, performance.now());
+          });
+
+          gyroSensor.addEventListener('reading', () => {
+            currentGyro = {
+              x: (gyroSensor.x || 0) * (180 / Math.PI),
+              y: (gyroSensor.y || 0) * (180 / Math.PI),
+              z: (gyroSensor.z || 0) * (180 / Math.PI)
+            };
+          });
+
+          accelSensor.start();
+          gyroSensor.start();
+
+          state.activeApi = 'Generic Sensor API';
+          elements.activeApiBadge.textContent = 'Generic Sensor API';
+          elements.activeApiBadge.className = 'text-sm font-bold text-cyan-400 font-mono-data';
+          elements.apiSubtext.textContent = 'High-Speed Native Event Channel';
+          sensorInitialized = true;
+        } catch (err) {
+          console.warn('Generic Sensor API initialization blocked or rejected:', err);
+          elements.sensorApiSupport.textContent = 'Blocked by System/Security';
+          elements.sensorApiSupport.className = 'font-semibold text-amber-400';
+        }
+      } else {
+        elements.sensorApiSupport.textContent = 'Not Available in Browser';
+        elements.sensorApiSupport.className = 'font-semibold text-slate-500';
+      }
+
+      return sensorInitialized;
+    }
+
+    function initDeviceMotionFallback() {
+      if ('DeviceMotionEvent' in window) {
+        elements.deviceMotionSupport.textContent = 'Supported (DeviceMotion)';
+        elements.deviceMotionSupport.className = 'font-semibold text-emerald-400';
+
+        let currentGyro = { x: 0, y: 0, z: 0 };
+
+        window.addEventListener('deviceorientation', (e) => {
+          currentGyro = {
+            x: e.alpha || 0,
+            y: e.beta || 0,
+            z: e.gamma || 0
+          };
+        });
+
+        window.addEventListener('devicemotion', (e) => {
+          const acc = e.acceleration || e.accelerationIncludingGravity || { x: 0, y: 0, z: 0 };
+          const rot = e.rotationRate || { alpha: 0, beta: 0, gamma: 0 };
+
+          const gyroData = (rot.alpha !== null) ? { x: rot.alpha, y: rot.beta, z: rot.gamma } : currentGyro;
+
+          processSensorSample(
+            { x: acc.x || 0, y: acc.y || 0, z: acc.z || 0 },
+            gyroData,
+            performance.now()
+          );
+        });
+
+        if (state.activeApi === 'None') {
+          state.activeApi = 'DeviceMotionEvent';
+          elements.activeApiBadge.textContent = 'DeviceMotionEvent';
+          elements.activeApiBadge.className = 'text-sm font-bold text-amber-400 font-mono-data';
+          elements.apiSubtext.textContent = 'Browser Standard Fallback';
+        }
+      } else {
+        elements.deviceMotionSupport.textContent = 'Unsupported';
+        elements.deviceMotionSupport.className = 'font-semibold text-rose-500';
+      }
+    }
+
+    async function requestIosPermissions() {
+      if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+        try {
+          const response = await DeviceMotionEvent.requestPermission();
+          elements.permissionState.textContent = response;
+          if (response === 'granted') {
+            elements.permissionState.className = 'font-semibold text-emerald-400';
+            elements.iosPermissionBtn.classList.add('hidden');
+            initDeviceMotionFallback();
+          } else {
+            elements.permissionState.className = 'font-semibold text-rose-400';
+          }
+        } catch (err) {
+          console.error('iOS Sensor Permission Error:', err);
+          elements.permissionState.textContent = 'Error Requesting';
+          elements.permissionState.className = 'font-semibold text-rose-400';
+        }
+      }
+    }
+
+    if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+      elements.iosPermissionBtn.classList.remove('hidden');
+      elements.permissionState.textContent = 'Action Required';
+      elements.permissionState.className = 'font-semibold text-amber-400';
+    }
+
+    elements.toggleRecordBtn.addEventListener('click', async () => {
+      state.isRecording = !state.isRecording;
+
+      if (state.isRecording) {
+        if (state.activeApi === 'None') {
+          const genericSuccess = await initGenericSensorAPI();
+          if (!genericSuccess) {
+            initDeviceMotionFallback();
+          }
+        }
+
+        elements.recordBtnText.textContent = 'Pause Acquisition';
+        elements.toggleRecordBtn.className = 'text-sm font-semibold px-4 py-2 bg-rose-500 hover:bg-rose-400 text-slate-950 rounded-lg shadow-lg shadow-rose-500/25 transition duration-150 flex items-center gap-2 active:scale-95';
+        elements.recordIcon.setAttribute('data-lucide', 'pause');
+        lucide.createIcons();
+      } else {
+        elements.recordBtnText.textContent = 'Resume Acquisition';
+        elements.toggleRecordBtn.className = 'text-sm font-semibold px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 rounded-lg shadow-lg shadow-cyan-500/25 transition duration-150 flex items-center gap-2 active:scale-95';
+        elements.recordIcon.setAttribute('data-lucide', 'play');
+        lucide.createIcons();
+      }
+    });
+
+    elements.clearBtn.addEventListener('click', () => {
+      state.dataBuffer = [];
+      state.recordedSamples = [];
+      state.sampleCounter = 0;
+      state.peakAccelMag = 0;
+      state.peakGyroSpeed = 0;
+
+      elements.sampleCountMetric.textContent = '0';
+      elements.peakAccelMetric.textContent = '0.00';
+      elements.peakGyroMetric.textContent = '0.00';
+      elements.exportCsvBtn.disabled = true;
+    });
+
+    elements.filterSelector.addEventListener('change', (e) => {
+      state.filterMode = e.target.value;
+    });
+
+    elements.iosPermissionBtn.addEventListener('click', requestIosPermissions);
+
+    elements.exportCsvBtn.addEventListener('click', () => {
+      if (state.recordedSamples.length === 0) return;
+
+      const headers = ['Timestamp_ms', 'Accel_X_ms2', 'Accel_Y_ms2', 'Accel_Z_ms2', 'Accel_Magnitude_ms2', 'Gyro_X_degs', 'Gyro_Y_degs', 'Gyro_Z_degs'];
+      
+      const csvRows = state.recordedSamples.map(row => [
+        row.timestamp,
+        row.accX.toFixed(4),
+        row.accY.toFixed(4),
+        row.accZ.toFixed(4),
+        row.accMag.toFixed(4),
+        row.gyroX.toFixed(4),
+        row.gyroY.toFixed(4),
+        row.gyroZ.toFixed(4)
+      ].join(','));
+
+      const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...csvRows].join('\n');
+      const encodedUri = encodeURI(csvContent);
+      
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute('href', encodedUri);
+      downloadAnchor.setAttribute('download', `sensor_kinematics_export_${Date.now()}.csv`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      document.body.removeChild(downloadAnchor);
+    });
+
+    // High-Frequency Chart Render Loop (60-120 FPS requestAnimationFrame)
+    function animateLoop() {
+      accelXPlotter.render(state.dataBuffer);
+      accelYPlotter.render(state.dataBuffer);
+      accelZPlotter.render(state.dataBuffer);
+      gyroXPlotter.render(state.dataBuffer);
+      gyroYPlotter.render(state.dataBuffer);
+      gyroZPlotter.render(state.dataBuffer);
+      requestAnimationFrame(animateLoop);
+    }
+
+    window.onload = () => {
+      animateLoop();
+    };
+  </script>
+</body>
+</html>
